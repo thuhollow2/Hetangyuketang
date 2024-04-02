@@ -45,7 +45,6 @@ class MsgManager:
         self.wx=wx
 
     def sendMsg(self,msg="this is a test msg"):
-        get_token()
         if self.debug:
             print(f"发送给{Touser}的消息: {msg}")
         if self.wx:
