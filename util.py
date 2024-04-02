@@ -100,7 +100,7 @@ def format_json_to_text(json_data, list_data):
         text_result += "无\n"
     else:
         for item in index_data:
-            text_result += f"- PPT: 第{item}页\n"
+            text_result += f"- PPT第{item}页\n"
     return text_result
 
 async def recv_json(websocket):
