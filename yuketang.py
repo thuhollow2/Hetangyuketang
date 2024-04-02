@@ -20,9 +20,9 @@ class yuketang:
         self.lessonIdDict = {}
         self.start_time=time.time()
         self.debug=True
-        self.wx=False
-        self.an=False
-        self.si=False
+        self.wx=False # 设置为True时启用企业微信推送，须在send.py设置个人CompanyId、AgentId、Secret
+        self.an=False # 设置为True时自动答题
+        self.si=False # 设置为True时实时推送PPT进度
         self.msgmgr=MsgManager(debug=self.debug,wx=self.wx)
 
     async def getcookie(self):
