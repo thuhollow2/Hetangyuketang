@@ -15,7 +15,7 @@ def download_qrcode(url):
     except Exception as e:
         print(f"下载登录二维码时发生错误: {e}")
         return
-    print("下载登录二维码中")
+    print("登录二维码已下载")
     with open("qrcode.jpg","wb")as f:
         f.write(res.content)
 
