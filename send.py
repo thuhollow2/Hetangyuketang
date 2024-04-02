@@ -57,7 +57,7 @@ def get_pdf_size(pdf_writer):
     pdf_writer.write(temp_io)
     return temp_io.getbuffer().nbytes
 
-def split_pdf(filepath, max_size=2097152):  # 20MB
+def split_pdf(filepath, max_size=20971520):  # 20MB
     if os.path.getsize(filepath) < max_size:
         return [filepath]
     pdf = PdfReader(filepath)
