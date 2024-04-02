@@ -144,6 +144,7 @@ def send_file(media_ids):
         except Exception as e:
             print(f"发送文件时发生错误: {e}")
             return
+        time.sleep(1)
 
 def send2wechat(message):
     # 将消息按行分割
@@ -201,6 +202,7 @@ def send_image(media_ids):
             print(f"发送图片时发生错误: {e}")
             return
         #print(r.json())
+        time.sleep(1)
 
 def get_useridlist():
     get_token()
