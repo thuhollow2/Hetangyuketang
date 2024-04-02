@@ -8,7 +8,7 @@ os.chdir(current_dir)
 
 global ACCESS_TOKEN
 
-Touser = '@all'
+Touser = '@all' # 发送给所有人
 AgentId = 'xxxx'
 Secret = 'xxxx'
 CompanyId = 'xxxx'
