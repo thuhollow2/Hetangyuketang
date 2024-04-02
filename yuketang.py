@@ -222,10 +222,7 @@ class yuketang:
         if os.path.exists(output_pdf_path):
             self.lessonIdDict[lessonId]['noPPT']='0'
             if self.wx:
-                try:
-                    send_file(upload_file(output_pdf_path))
-                except Exception as e:
-                    self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：发送PPT失败")
+                send_file(upload_file(output_pdf_path))
         else:
             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：没有PPT")
             self.lessonIdDict[lessonId]['noPPT']='1'
@@ -359,15 +356,15 @@ class yuketang:
                         self.lessonIdDict[lessonId]['unlockedproblem']=server_response['unlockedproblem']
                 elif op=="unlockproblem":
                     if server_response['problem'].get('pres'):
-                        if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['slide']['pres']:
+                        if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['problem']['pres']:
                             flag_ppt=1
                             flag_si=1
                             flag_unlock=1
                             del self.lessonIdDict[lessonId]['si']
                             del self.lessonIdDict[lessonId]['unlockedproblem']
-                        self.lessonIdDict[lessonId]['presentation']=server_response['slide']['pres']
+                        self.lessonIdDict[lessonId]['presentation']=server_response['problem']['pres']
                     if server_response['problem'].get('si'):
-                        self.lessonIdDict[lessonId]['si']=server_response['slide']['si']
+                        self.lessonIdDict[lessonId]['si']=server_response['problem']['si']
                     if server_response.get('unlockedproblem'):
                         self.lessonIdDict[lessonId]['unlockedproblem']=server_response['unlockedproblem']
                     self.lessonIdDict[lessonId]['problemId']=server_response['problem']['prob']
