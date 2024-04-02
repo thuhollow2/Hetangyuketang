@@ -197,7 +197,7 @@ class yuketang:
             if slide.get("problem") is not None:
                 self.lessonIdDict[lessonId]['problems'][slide['id']]=slide['problem']
                 self.lessonIdDict[lessonId]['problems'][slide['id']]['index']=slide['index']
-                if self.lessonIdDict[lessonId]['problems'][slide['id']]['answers']==[] and self.lessonIdDict[lessonId]['problems'][slide['id']]['result']!=[]:
+                if self.lessonIdDict[lessonId]['problems'][slide['id']]['answers'] in [[],None,'null'] and self.lessonIdDict[lessonId]['problems'][slide['id']]['result'] not in [[],None,'null']:
                     self.lessonIdDict[lessonId]['problems'][slide['id']]['answers']=self.lessonIdDict[lessonId]['problems'][slide['id']]['result']
                 if slide['problem']['body'] == '':
                     shapes = slide.get('shapes', [])
@@ -236,7 +236,7 @@ class yuketang:
             "Content-Type":"application/json",
             "Authorization":self.lessonIdDict[lessonId]['Authorization']
         }
-        if self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers']==[]:
+        if self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers'] in [[],None,'null']:
             self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers'].append(self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options'][0]['key'])
         data={
             "dt":int(time.time()*1000),
