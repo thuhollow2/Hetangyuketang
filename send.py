@@ -2,6 +2,8 @@ import json
 import requests
 import os
 import time
+import io
+from PyPDF2 import PdfReader, PdfWriter
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
@@ -50,46 +52,124 @@ class MsgManager:
         if self.wx:
             send2wechat(msg)
 
+def get_pdf_size(pdf_writer):
+    temp_io = io.BytesIO()
+    pdf_writer.write(temp_io)
+    return temp_io.getbuffer().nbytes
+
+def split_pdf(filepath, max_size=2097152):  # 20MB
+    if os.path.getsize(filepath) < max_size:
+        return [filepath]
+    pdf = PdfReader(filepath)
+    pdf_writer = PdfWriter()
+    filepaths = []
+    output_filename = f'{filepath[:-4]}_'
+    start_page = 0
+    for page in range(len(pdf.pages)):
+        pdf_writer.add_page(pdf.pages[page])
+        if get_pdf_size(pdf_writer) >= max_size:
+            if start_page != page:
+                if start_page == page - 1:
+                    temp_filename = f'{output_filename}{start_page + 1}.pdf'
+                    temp_pdf_writer=PdfWriter()
+                    temp_pdf_writer.add_page(pdf.pages[start_page])
+                else:
+                    temp_filename = f'{output_filename}{start_page + 1}-{page}.pdf'
+                    temp_pdf_writer = PdfWriter()
+                    for i in range(start_page, page):
+                        temp_pdf_writer.add_page(pdf.pages[i])
+                with open(temp_filename, 'wb') as out:
+                    temp_pdf_writer.write(out)
+                filepaths.append(temp_filename)
+                pdf_writer = PdfWriter()
+                pdf_writer.add_page(pdf.pages[page])
+                start_page = page
+                if get_pdf_size(pdf_writer) >= max_size:
+                    pdf_writer = PdfWriter()
+                    start_page = page + 1
+            else:
+                pdf_writer = PdfWriter()
+                start_page = page + 1
+    if start_page != len(pdf.pages):
+        if start_page == len(pdf.pages) - 1:
+            temp_filename = f'{output_filename}{start_page + 1}.pdf'
+            temp_pdf_writer = PdfWriter()
+            temp_pdf_writer.add_page(pdf.pages[start_page])
+        else:
+            temp_filename = f'{output_filename}{start_page + 1}-{len(pdf.pages)}.pdf'
+            temp_pdf_writer = PdfWriter()
+            for i in range(start_page, len(pdf.pages)):
+                temp_pdf_writer.add_page(pdf.pages[i])
+        with open(temp_filename, 'wb') as out:
+            temp_pdf_writer.write(out)
+        filepaths.append(temp_filename)
+    return filepaths
 
 def upload_file(filepath):
     get_token()
     TYPE="file"
-    files={
-        'file':open(filepath,'rb')
-    }
-    try:
-        r=requests.post(f'https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token={ACCESS_TOKEN}&type={TYPE}', files=files, timeout=15)
-    except Exception as e:
-        print(f"上传文件时发生错误: {e}")
-        return
-    return r.json()['media_id']
+    _, ext = os.path.splitext(filepath)
+    if ext.lower() == '.pdf':
+        filepaths = split_pdf(filepath)
+    else:
+        filepaths = [filepath]
+    media_ids = []
+    for path in filepaths:
+        files={
+            'file':open(path,'rb')
+        }
+        try:
+            r=requests.post(f'https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token={ACCESS_TOKEN}&type={TYPE}', files=files, timeout=15)
+        except Exception as e:
+            print(f"上传文件时发生错误: {e}")
+            return
+        media_ids.append(r.json()['media_id'])
+    return media_ids
 
-def send_file(id):
+def send_file(media_ids):
     get_token()
-    data = {
-        "touser": f"{Touser}",
-        "msgtype": "file",
-        "agentid": f"{AgentId}",
-        "file":  {'media_id':id}
-    }
-    # 字典转成json，不然会报错
-    data = json.dumps(data)
-    # 发送消息
-    try:
-        r = requests.post(
-            f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={ACCESS_TOKEN}', data=data, timeout=15)
-    except Exception as e:
-        print(f"发送文件时发生错误: {e}")
-        return
+    for id in media_ids:
+        data = {
+            "touser": f"{Touser}",
+            "msgtype": "file",
+            "agentid": f"{AgentId}",
+            "file":  {'media_id':id}
+        }
+        # 字典转成json，不然会报错
+        data = json.dumps(data)
+        # 发送消息
+        try:
+            r = requests.post(
+                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={ACCESS_TOKEN}', data=data, timeout=15)
+        except Exception as e:
+            print(f"发送文件时发生错误: {e}")
+            return
 
 def send2wechat(message):
+    # 将消息按行分割
+    lines = message.split('\n')
+    part = lines[0]
+    part_length = len(part)
+    for line in lines[1:]:
+        new_length = part_length + 1 + len(line)
+        if new_length <= 500:
+            part += '\n' + line
+            part_length = new_length
+        else:
+            send_part(part)
+            time.sleep(1)
+            part = line
+            part_length = len(line)
+    send_part(part)
+
+def send_part(part):
     # 要发送的信息格式
     get_token()
     data = {
         "touser": f"{Touser}",
         "msgtype": "text",
         "agentid": f"{AgentId}",
-        "text": {"content": f"{message}"}
+        "text": {"content": f"{part}"}
     }
     # 字典转成json，不然会报错
     data = json.dumps(data)
@@ -101,25 +181,26 @@ def send2wechat(message):
         print(f"发送消息时发生错误: {e}")
         return
 
-def send_image(id):
+def send_image(media_ids):
     # 要发送的信息格式
     get_token()
-    data = {
-        "touser": f"{Touser}",
-        "msgtype": "image",
-        "agentid": f"{AgentId}",
-        "image":  {'media_id':id}
-    }
-    # 字典转成json，不然会报错
-    data = json.dumps(data)
-    # 发送消息
-    try:
-        r = requests.post(
-            f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={ACCESS_TOKEN}', data=data, timeout=15)
-    except Exception as e:
-        print(f"发送图片时发生错误: {e}")
-        return
-    #print(r.json())
+    for id in media_ids:
+        data = {
+            "touser": f"{Touser}",
+            "msgtype": "image",
+            "agentid": f"{AgentId}",
+            "image":  {'media_id':id}
+        }
+        # 字典转成json，不然会报错
+        data = json.dumps(data)
+        # 发送消息
+        try:
+            r = requests.post(
+                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={ACCESS_TOKEN}', data=data, timeout=15)
+        except Exception as e:
+            print(f"发送图片时发生错误: {e}")
+            return
+        #print(r.json())
 
 def get_useridlist():
     get_token()
@@ -131,4 +212,3 @@ def get_useridlist():
         print(f"获取用户列表时发生错误: {e}")
         return
     print(r.json())
-
