@@ -16,7 +16,7 @@ python main.py
 class yuketang:
     def __init__(self) -> None:
         ...
-        self.wx=False # 设置为True时启用企业微信推送，须在send.py设置个人CompanyId、AgentId、Secret，可能还要在[企业微信应用](https://work.weixin.qq.com/wework_admin/frame#apps)配置企业可信IP
+        self.wx=False # 设置为True时启用企业微信推送，须在send.py设置个人CompanyId、AgentId、Secret
         self.an=False # 设置为True时自动答题
         self.si=False # 设置为True时实时推送PPT进度
         ...
