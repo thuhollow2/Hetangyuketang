@@ -319,11 +319,25 @@ class yuketang:
                     reversed_timeline = list(reversed(server_response['timeline']))
                     for item in reversed_timeline:
                         if 'pres' in item:
-                            self.lessonIdDict[lessonId]['presentation']=item['pres']
+                            if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != item['pres']:
+                                flag_ppt=1
+                                flag_si=1
+                                flag_unlock=1
+                                del self.lessonIdDict[lessonId]['si']
+                                del self.lessonIdDict[lessonId]['unlockedproblem']
+                                self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：课件更新")
+                                self.lessonIdDict[lessonId]['presentation']=item['pres']
                             self.lessonIdDict[lessonId]['si']=item['si']
                             break
                     if server_response.get('presentation'):
-                        self.lessonIdDict[lessonId]['presentation']=server_response['presentation']
+                        if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['presentation']:
+                            flag_ppt=1
+                            flag_si=1
+                            flag_unlock=1
+                            del self.lessonIdDict[lessonId]['si']
+                            del self.lessonIdDict[lessonId]['unlockedproblem']
+                            self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：课件更新")
+                            self.lessonIdDict[lessonId]['presentation']=server_response['presentation']
                     if server_response.get('slideindex'):
                         self.lessonIdDict[lessonId]['si']=server_response['slideindex']
                     if server_response.get('unlockedproblem'):
@@ -337,7 +351,7 @@ class yuketang:
                             del self.lessonIdDict[lessonId]['si']
                             del self.lessonIdDict[lessonId]['unlockedproblem']
                             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：课件更新")
-                        self.lessonIdDict[lessonId]['presentation']=server_response['presentation']
+                            self.lessonIdDict[lessonId]['presentation']=server_response['presentation']
                     if server_response.get('slideindex'):
                         self.lessonIdDict[lessonId]['si']=server_response['slideindex']
                     if server_response.get('unlockedproblem'):
@@ -351,7 +365,7 @@ class yuketang:
                             del self.lessonIdDict[lessonId]['si']
                             del self.lessonIdDict[lessonId]['unlockedproblem']
                             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：课件更新")
-                        self.lessonIdDict[lessonId]['presentation']=server_response['slide']['pres']
+                            self.lessonIdDict[lessonId]['presentation']=server_response['slide']['pres']
                     if server_response['slide'].get('si'):
                         self.lessonIdDict[lessonId]['si']=server_response['slide']['si']
                     if server_response.get('unlockedproblem'):
@@ -365,7 +379,7 @@ class yuketang:
                             del self.lessonIdDict[lessonId]['si']
                             del self.lessonIdDict[lessonId]['unlockedproblem']
                             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：课件更新")
-                        self.lessonIdDict[lessonId]['presentation']=server_response['problem']['pres']
+                            self.lessonIdDict[lessonId]['presentation']=server_response['problem']['pres']
                     if server_response['problem'].get('si'):
                         self.lessonIdDict[lessonId]['si']=server_response['problem']['si']
                     if server_response.get('unlockedproblem'):
