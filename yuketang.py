@@ -197,7 +197,7 @@ class yuketang:
             if slide.get("problem") is not None:
                 self.lessonIdDict[lessonId]['problems'][slide['id']]=slide['problem']
                 self.lessonIdDict[lessonId]['problems'][slide['id']]['index']=slide['index']
-                if self.lessonIdDict[lessonId]['problems'][slide['id']]['answers'] in [[],None,'null'] and self.lessonIdDict[lessonId]['problems'][slide['id']]['result'] not in [[],None,'null']:
+                if not check_answers_in_options(self.lessonIdDict[lessonId]['problems'][slide['id']]['answers'], self.lessonIdDict[lessonId]['problems'][slide['id']]['options']) and check_answers_in_options(self.lessonIdDict[lessonId]['problems'][slide['id']]['result'], self.lessonIdDict[lessonId]['problems'][slide['id']]['options']):
                     self.lessonIdDict[lessonId]['problems'][slide['id']]['answers']=self.lessonIdDict[lessonId]['problems'][slide['id']]['result']
                 if slide['problem']['body'] == '':
                     shapes = slide.get('shapes', [])
@@ -236,8 +236,8 @@ class yuketang:
             "Content-Type":"application/json",
             "Authorization":self.lessonIdDict[lessonId]['Authorization']
         }
-        if self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers'] in [[],None,'null']:
-            self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers'].append(self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options'][0]['key'])
+        if not check_answers_in_options(self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers'], self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options']):
+            self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers']=[self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options'][0]['key']]
         data={
             "dt":int(time.time()*1000),
             "problemId":self.lessonIdDict[lessonId]['problemId'],
