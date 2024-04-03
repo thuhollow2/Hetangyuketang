@@ -222,7 +222,10 @@ class yuketang:
         if os.path.exists(output_pdf_path):
             self.lessonIdDict[lessonId]['noPPT']='0'
             if self.wx:
-                send_file(upload_file(output_pdf_path))
+                try:
+                    send_file(upload_file(output_pdf_path))
+                except Exception as e:
+                    self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：PPT推送失败")
         else:
             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：没有PPT")
             self.lessonIdDict[lessonId]['noPPT']='1'
