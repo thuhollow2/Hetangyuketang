@@ -103,6 +103,12 @@ def format_json_to_text(json_data, list_data):
             text_result += f"- PPT第{item}页\n"
     return text_result
 
+def check_answers_in_options(answers, options):
+    option_keys = [option['key'] for option in options]
+    if answers in [[],None,'null'] or any(answer not in option_keys for answer in answers):
+        return False
+    return True
+
 async def recv_json(websocket):
     server_response = await websocket.recv()
     # print(f"Received from server: {server_response}")
