@@ -18,7 +18,6 @@ class yuketang:
         self.cookie=""
         self.lessonIdNewList=[]
         self.lessonIdDict = {}
-        self.start_time=time.time()
         self.debug=True
         self.wx=False # 设置为True时启用企业微信推送，须在send.py设置个人CompanyId、AgentId、Secret
         self.an=False # 设置为True时自动答题
@@ -128,11 +127,15 @@ class yuketang:
             return False
         try:
             self.lessonIdNewList = []
+            if online_data['data']['onLessonClassrooms'] == []:
+                self.lessonIdDict = {}
+                return False
             for item in online_data['data']['onLessonClassrooms']:
                 lessonId = item['lessonId']
                 if lessonId not in self.lessonIdDict:
-                    self.lessonIdDict[lessonId] = {}
                     self.lessonIdNewList.append(lessonId)
+                    self.lessonIdDict[lessonId] = {}
+                    self.lessonIdDict[lessonId]['start_time'] = time.time()
                 self.lessonIdDict[lessonId]['classroomName'] = item['classroomName']
                 self.lessonIdDict[lessonId]['active'] = '1'
             to_delete = [lessonId for lessonId, details in self.lessonIdDict.items() if not details.get('active', '0') == '1']
@@ -311,7 +314,7 @@ class yuketang:
                 "lessonid": lessonId
             }
             await websocket.send(json.dumps(hello_message))
-            while True and time.time()-self.start_time<36000:
+            while True and time.time()-self.lessonIdDict[lessonId]['start_time']<36000:
                 try:
                     server_response = await recv_json(websocket)
                 except Exception as e:
@@ -406,8 +409,8 @@ class yuketang:
                         del self.lessonIdDict[lessonId]['si']
                     else:
                         flag_si=0
+            del self.lessonIdDict[lessonId]
         await websocket.close()
-        del self.lessonIdDict[lessonId]
 
     async def lesson_attend(self):
         tasks = [asyncio.create_task(self.ws_lesson(lessonId)) for lessonId in self.lessonIdNewList]
