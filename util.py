@@ -5,9 +5,12 @@ import re
 import shutil
 from PIL import Image
 from datetime import datetime
+from pytz import timezone
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
+
+tz = timezone('Asia/Shanghai')
 
 def download_qrcode(url):
     try:
@@ -23,7 +26,7 @@ def cookie_date(response):
     set_cookie_str = response.headers.get('Set-Cookie', '')
     expires_regex = re.compile(r'expires=([^;]+)')
     expires_matches = expires_regex.findall(set_cookie_str)
-    expires_datetimes = [datetime.strptime(date_str, '%a, %d-%b-%Y %H:%M:%S GMT') for date_str in expires_matches]
+    expires_datetimes = [datetime.strptime(date_str, '%a, %d-%b-%Y %H:%M:%S GMT').replace(tzinfo=timezone('UTC')).astimezone(tz) for date_str in expires_matches]
     nearest_expires = min(expires_datetimes, default=None)
     if nearest_expires:
         nearest_expires_str = nearest_expires.strftime('%Y年%m月%d日%H时%M分%S秒')
@@ -74,7 +77,7 @@ def images_to_pdf(folder, output_path):
 
 def convert_date(timestamp_ms):
     timestamp_s = timestamp_ms / 1000
-    dt = datetime.fromtimestamp(timestamp_s)
+    dt = datetime.fromtimestamp(timestamp_s, tz=timezone('UTC')).astimezone(tz)
     formatted_date = dt.strftime('%Y年%m月%d日%H时%M分%S秒')
     return formatted_date
 
@@ -88,9 +91,10 @@ def format_json_to_text(json_data, list_data):
         body = problem_info.get('body', '未知问题')
         answers = problem_info.get('answers', [])
         text_result += f"PPT: 第{problem_info['index']}页\n问题: {body}\n"
-        for option in problem_info.get('options', []):
-            text_result += f"- {option['key']}: {option['value']}\n"
-        if answers:
+        if 'options' in problem_info:
+            for option in problem_info['options']:
+                text_result += f"- {option['key']}: {option['value']}\n"
+        if answers not in [[],None,'null']:
             answer_text = ', '.join(answers)
             text_result += f"答案: {answer_text}\n"
         else:
@@ -106,6 +110,11 @@ def format_json_to_text(json_data, list_data):
 def check_answers_in_options(answers, options):
     option_keys = [option['key'] for option in options]
     if answers in [[],None,'null'] or any(answer not in option_keys for answer in answers):
+        return False
+    return True
+
+def check_answers_in_blanks(answers, blanks):
+    if answers in [[],None,'null'] or len(answers) != blanks or any(not answer for answer in answers):
         return False
     return True
 
