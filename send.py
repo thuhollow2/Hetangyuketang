@@ -8,56 +8,95 @@ from PyPDF2 import PdfReader, PdfWriter
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
 
-global ACCESS_TOKEN
+global WX_ACCESS_TOKEN
+global DD_ACCESS_TOKEN
 
-Touser = '@all' # 发送给所有人
-AgentId = 'xxxx'
-Secret = 'xxxx'
-CompanyId = 'xxxx'
+wx_touser = '@all' # 发送给所有人
+wx_agentId = '1000002'
+wx_secret = 'USeXviViKNLAWdAwNedM7BE4jVWbsJbLTuf4qtaesJo'
+wx_companyId = 'wwc80605e7f8d50215'
 
-def get_token():
-    global ACCESS_TOKEN
-    # 通行密钥
-    ACCESS_TOKEN = None
-    # 如果本地保存的有通行密钥且时间不超过两小时，就用本地的通行密钥
-    if os.path.exists('ACCESS_TOKEN.txt'):
-        txt_last_edit_time = os.stat('ACCESS_TOKEN.txt').st_mtime
+dd_appKey = 'dingd9pmq7qu2f9sdq9q'
+dd_appSecret = 'mNzRPfVpNOKN103YXhf8ibzA__LIuIUmsCvVWdWnw2FMcgfMC4PGdSaSm3pd50Xk'
+dd_robotCode = 'dingd9pmq7qu2f9sdq9q'
+dd_openConversationId = 'cid0LKqfUc35gwn07lg7si0PA=='
+
+def get_wx_token():
+    global WX_ACCESS_TOKEN
+    WX_ACCESS_TOKEN = None
+    if os.path.exists('WX_ACCESS_TOKEN.txt'):
+        txt_last_edit_time = os.stat('WX_ACCESS_TOKEN.txt').st_mtime
         now_time = time.time()
-        if now_time - txt_last_edit_time < 7000:  # 官方说通行密钥2小时刷新
-            with open('ACCESS_TOKEN.txt', 'r') as f:
-                ACCESS_TOKEN = f.read()
-                # print(ACCESS_TOKEN)
-    # 如果不存在本地通行密钥，通过企业ID和应用Secret获取
-    if not ACCESS_TOKEN:
+        if now_time - txt_last_edit_time < 7000:  # 2小时刷新
+            with open('WX_ACCESS_TOKEN.txt', 'r') as f:
+                WX_ACCESS_TOKEN = f.read()
+    if not WX_ACCESS_TOKEN:
         try:
             r = requests.post(
-                f'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={CompanyId}&corpsecret={Secret}', timeout=15).json()
+                f'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={wx_companyId}&corpsecret={wx_secret}', timeout=15).json()
         except Exception as e:
             print(f"获取通行密钥时发生错误: {e}")
             return
-        ACCESS_TOKEN = r["access_token"]
-        # print(ACCESS_TOKEN)
-        # 保存通行密钥到本地ACCESS_TOKEN.txt
-        with open('ACCESS_TOKEN.txt', 'w', encoding='utf-8') as f:
-            f.write(ACCESS_TOKEN)
+        WX_ACCESS_TOKEN = r["access_token"]
+        with open('WX_ACCESS_TOKEN.txt', 'w', encoding='utf-8') as f:
+            f.write(WX_ACCESS_TOKEN)
 
-class MsgManager:
-    def __init__(self,debug=False,wx=True) -> None:
-        self.debug=debug
+def get_dd_token():
+    global DD_ACCESS_TOKEN
+    DD_ACCESS_TOKEN = None
+    if os.path.exists('DD_ACCESS_TOKEN.txt'):
+        txt_last_edit_time = os.stat('DD_ACCESS_TOKEN.txt').st_mtime
+        now_time = time.time()
+        if now_time - txt_last_edit_time < 7000:  # 2小时刷新
+            with open('DD_ACCESS_TOKEN.txt', 'r') as f:
+                DD_ACCESS_TOKEN = f.read()
+    if not DD_ACCESS_TOKEN:
+        try:
+            r = requests.post(
+                f'https://api.dingtalk.com/v1.0/oauth2/accessToken', json={'appKey': dd_appKey, 'appSecret': dd_appSecret}, timeout=15).json()
+        except Exception as e:
+            print(f"获取通行密钥时发生错误: {e}")
+            return
+        DD_ACCESS_TOKEN = r["accessToken"]
+        with open('DD_ACCESS_TOKEN.txt', 'w', encoding='utf-8') as f:
+            f.write(DD_ACCESS_TOKEN)
+
+class SendManager:
+    def __init__(self,wx=False,dd=False) -> None:
         self.wx=wx
+        self.dd=dd
 
-    def sendMsg(self,msg="this is a test msg"):
-        if self.debug:
-            print(f"发送给{Touser}的消息: {msg}")
+    def sendMsg(self,msg):
+        print(msg)
         if self.wx:
-            send2wechat(msg)
+            get_wx_token()
+            send_wx_msg(msg_part(msg, 500))
+        if self.dd:
+            get_dd_token()
+            send_dd_msg(msg_part(msg, 3000))
+    
+    def sendImage(self,path):
+        if self.wx:
+            get_wx_token()
+            send_wx_image(upload_wx_file(path))
+        if self.dd:
+            get_dd_token()
+            send_dd_image(upload_dd_file(path))
+
+    def sendFile(self,path):
+        if self.wx:
+            get_wx_token()
+            send_wx_file(upload_wx_file(path))
+        if self.dd:
+            get_dd_token()
+            send_dd_file(upload_dd_file(path))
 
 def get_pdf_size(pdf_writer):
     temp_io = io.BytesIO()
     pdf_writer.write(temp_io)
     return temp_io.getbuffer().nbytes
 
-def split_pdf(filepath, max_size=20971520):  # 20MB
+def split_pdf(filepath, max_size):
     if os.path.getsize(filepath) < max_size:
         return [filepath]
     pdf = PdfReader(filepath)
@@ -105,112 +144,173 @@ def split_pdf(filepath, max_size=20971520):  # 20MB
         filepaths.append(temp_filename)
     return filepaths
 
-def upload_file(filepath):
-    get_token()
-    TYPE="file"
+def msg_part(message, max_length):
+    lines = message.split('\n')
+    parts = []
+    part = lines[0]
+    part_length = len(part)
+    for line in lines[1:]:
+        new_length = part_length + 1 + len(line)
+        if new_length <= max_length:
+            part += '\n' + line
+            part_length = new_length
+        else:
+            parts.append(part)
+            part = line
+            part_length = len(line)
+    parts.append(part)
+    return parts
+
+def upload_wx_file(filepath):
     _, ext = os.path.splitext(filepath)
     if ext.lower() == '.pdf':
-        filepaths = split_pdf(filepath)
+        filepaths = split_pdf(filepath, 20971520) # 20MB
     else:
         filepaths = [filepath]
     media_ids = []
     for path in filepaths:
         files={
-            'file':open(path,'rb')
+            'file': open(path, 'rb')
         }
         try:
-            r=requests.post(f'https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token={ACCESS_TOKEN}&type={TYPE}', files=files, timeout=15)
+            r=requests.post(f'https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token={WX_ACCESS_TOKEN}&type=file', files=files, timeout=15)
         except Exception as e:
             print(f"上传文件时发生错误: {e}")
             return
         media_ids.append(r.json()['media_id'])
     return media_ids
 
-def send_file(media_ids):
-    get_token()
-    for id in media_ids:
+def send_wx_msg(parts):
+    for part in parts:
         data = {
-            "touser": f"{Touser}",
-            "msgtype": "file",
-            "agentid": f"{AgentId}",
-            "file":  {'media_id':id}
+            "touser": wx_touser,
+            "msgtype": "text",
+            "agentid": wx_agentId,
+            "text": {"content": f"{part}"}
         }
-        # 字典转成json，不然会报错
         data = json.dumps(data)
-        # 发送消息
         try:
             r = requests.post(
-                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={ACCESS_TOKEN}', data=data, timeout=15)
+                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={WX_ACCESS_TOKEN}', data=data, timeout=15)
+        except Exception as e:
+            print(f"发送消息时发生错误: {e}")
+            return
+        time.sleep(1)
+
+def send_wx_image(media_ids):
+    for id in media_ids:
+        data = {
+            "touser": wx_touser,
+            "msgtype": "image",
+            "agentid": wx_agentId,
+            "image":  {'media_id':id}
+        }
+        data = json.dumps(data)
+        try:
+            r = requests.post(
+                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={WX_ACCESS_TOKEN}', data=data, timeout=15)
+        except Exception as e:
+            print(f"发送图片时发生错误: {e}")
+            return
+        time.sleep(1)
+
+def send_wx_file(media_ids):
+    for id in media_ids:
+        data = {
+            "touser": wx_touser,
+            "msgtype": "file",
+            "agentid": wx_agentId,
+            "file":  {'media_id':id}
+        }
+        data = json.dumps(data)
+        try:
+            r = requests.post(
+                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={WX_ACCESS_TOKEN}', data=data, timeout=15)
         except Exception as e:
             print(f"发送文件时发生错误: {e}")
             return
         time.sleep(1)
 
-def send2wechat(message):
-    # 将消息按行分割
-    lines = message.split('\n')
-    part = lines[0]
-    part_length = len(part)
-    for line in lines[1:]:
-        new_length = part_length + 1 + len(line)
-        if new_length <= 500:
-            part += '\n' + line
-            part_length = new_length
-        else:
-            send_part(part)
-            time.sleep(1)
-            part = line
-            part_length = len(line)
-    send_part(part)
-
-def send_part(part):
-    # 要发送的信息格式
-    get_token()
-    data = {
-        "touser": f"{Touser}",
-        "msgtype": "text",
-        "agentid": f"{AgentId}",
-        "text": {"content": f"{part}"}
-    }
-    # 字典转成json，不然会报错
-    data = json.dumps(data)
-    # 发送消息
-    try:
-        r = requests.post(
-            f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={ACCESS_TOKEN}', data=data, timeout=15)
-    except Exception as e:
-        print(f"发送消息时发生错误: {e}")
-        return
-
-def send_image(media_ids):
-    # 要发送的信息格式
-    get_token()
-    for id in media_ids:
-        data = {
-            "touser": f"{Touser}",
-            "msgtype": "image",
-            "agentid": f"{AgentId}",
-            "image":  {'media_id':id}
+def upload_dd_file(filepath):
+    _, ext = os.path.splitext(filepath)
+    if ext.lower() == '.pdf':
+        filepaths = split_pdf(filepath, 20971520) # 20MB
+    else:
+        filepaths = [filepath]
+    media_ids = {}
+    for path in filepaths:
+        files={
+            'media': open(path, 'rb')
         }
-        # 字典转成json，不然会报错
+        try:
+            r=requests.post(f'https://oapi.dingtalk.com/media/upload?access_token={DD_ACCESS_TOKEN}&type=file', files=files, timeout=15)
+        except Exception as e:
+            print(f"上传文件时发生错误: {e}")
+            return
+        media_ids[r.json()['media_id']] = os.path.basename(path)
+    return media_ids
+
+def send_dd_msg(parts):
+    for part in parts:
+        headers = {
+            'x-acs-dingtalk-access-token': DD_ACCESS_TOKEN,
+            'Content-Type': 'application/json'
+        }
+        data = {
+            "msgParam" : f'{{"content":"{part}"}}',
+            "msgKey" : "sampleText",
+            "robotCode" : dd_robotCode,
+            "openConversationId" : dd_openConversationId
+        }
         data = json.dumps(data)
-        # 发送消息
         try:
             r = requests.post(
-                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={ACCESS_TOKEN}', data=data, timeout=15)
+                f'https://api.dingtalk.com/v1.0/robot/groupMessages/send', headers=headers, data=data, timeout=15)
+        except Exception as e:
+            print(f"发送消息时发生错误: {e}")
+            return
+        time.sleep(1)
+
+def send_dd_image(media_ids):
+    for id in media_ids:
+        headers = {
+            'x-acs-dingtalk-access-token': DD_ACCESS_TOKEN,
+            'Content-Type': 'application/json'
+        }
+        data = {
+            "msgParam" : f'{{"photoURL":"{id}"}}',
+            "msgKey" : "sampleImageMsg",
+            "robotCode" : dd_robotCode,
+            "openConversationId" : dd_openConversationId
+        }
+        data = json.dumps(data)
+        try:
+            r = requests.post(
+                f'https://api.dingtalk.com/v1.0/robot/groupMessages/send', headers=headers, data=data, timeout=15)
         except Exception as e:
             print(f"发送图片时发生错误: {e}")
             return
-        #print(r.json())
         time.sleep(1)
 
-def get_useridlist():
-    get_token()
-    print(ACCESS_TOKEN)
-    url="https://qyapi.weixin.qq.com/cgi-bin/user/list_id?access_token={ACCESS_TOKEN}"
-    try:
-        r=requests.post(url, timeout=15)
-    except Exception as e:
-        print(f"获取用户列表时发生错误: {e}")
-        return
-    print(r.json())
+def send_dd_file(media_ids):
+    for id in media_ids:
+        _, ext = os.path.splitext(media_ids[id])
+        fileType = ext[1:]
+        headers = {
+            'x-acs-dingtalk-access-token': DD_ACCESS_TOKEN,
+            'Content-Type': 'application/json'
+        }
+        data = {
+            "msgParam" : f'{{"mediaId":"{id}", "fileName":"{media_ids[id]}", "fileType":"{fileType}"}}',
+            "msgKey" : "sampleFile",
+            "robotCode" : dd_robotCode,
+            "openConversationId" : dd_openConversationId
+        }
+        data = json.dumps(data)
+        try:
+            r = requests.post(
+                f'https://api.dingtalk.com/v1.0/robot/groupMessages/send', headers=headers, data=data, timeout=15)
+        except Exception as e:
+            print(f"发送文件时发生错误: {e}")
+            return
+        time.sleep(1)
