@@ -12,14 +12,14 @@ global WX_ACCESS_TOKEN
 global DD_ACCESS_TOKEN
 
 wx_touser = '@all' # 发送给所有人
-wx_agentId = '1000002'
-wx_secret = 'USeXviViKNLAWdAwNedM7BE4jVWbsJbLTuf4qtaesJo'
-wx_companyId = 'wwc80605e7f8d50215'
+wx_agentId = 'XXXX'
+wx_secret = 'XXXX'
+wx_companyId = 'XXXX'
 
-dd_appKey = 'dingd9pmq7qu2f9sdq9q'
-dd_appSecret = 'mNzRPfVpNOKN103YXhf8ibzA__LIuIUmsCvVWdWnw2FMcgfMC4PGdSaSm3pd50Xk'
-dd_robotCode = 'dingd9pmq7qu2f9sdq9q'
-dd_openConversationId = 'cid0LKqfUc35gwn07lg7si0PA=='
+dd_appKey = 'XXXX'
+dd_appSecret = 'XXXX'
+dd_robotCode = 'XXXX'
+dd_openConversationId = 'XXXX'
 
 def get_wx_token():
     global WX_ACCESS_TOKEN
