@@ -28,13 +28,13 @@ class yuketang:
     async def getcookie(self):
         while True:
             if not os.path.exists(self.cookie_filename):
-                self.msgmgr.sendMsg("正在第一次获取登录cookie，请注意扫码")
+                self.msgmgr.sendMsg("正在第一次获取登录cookie，请用微信扫码")
                 await self.ws_controller(self.ws_login, retries=1000, delay=0)
             with open(self.cookie_filename, "r") as f:
                 lines = f.readlines()
             self.cookie = lines[0].strip()
             if not self.check_cookie():
-                self.msgmgr.sendMsg("cookie已失效，请重新扫码")
+                self.msgmgr.sendMsg("cookie已失效，请重新微信扫码")
                 await self.ws_controller(self.ws_login, retries=1000, delay=0)
             else:
                 if len(lines) >= 2:
