@@ -96,35 +96,44 @@ class SendManager:
         print(msg)
         if self.wx:
             get_wx_token()
-            send_wx_msg(msg_part(msg, 500))
+            if WX_ACCESS_TOKEN:
+                send_wx_msg(msg_part(msg, 500))
         if self.dd:
             get_dd_token()
-            send_dd_msg(msg_part(msg, 3000))
+            if DD_ACCESS_TOKEN:
+                send_dd_msg(msg_part(msg, 3000))
         if self.fs:
             get_fs_token()
-            send_fs_msg(msg_part(msg, 10000))
+            if FS_ACCESS_TOKEN:
+                send_fs_msg(msg_part(msg, 10000))
     
     def sendImage(self,path):
         if self.wx:
             get_wx_token()
-            send_wx_image(upload_wx_file(path))
+            if WX_ACCESS_TOKEN:
+                send_wx_image(upload_wx_file(path))
         if self.dd:
             get_dd_token()
-            send_dd_image(upload_dd_file(path))
+            if DD_ACCESS_TOKEN:
+                send_dd_image(upload_dd_file(path))
         if self.fs:
             get_fs_token()
-            send_fs_image(upload_fs_image(path))
+            if FS_ACCESS_TOKEN:
+                send_fs_image(upload_fs_image(path))
 
     def sendFile(self,path):
         if self.wx:
             get_wx_token()
-            send_wx_file(upload_wx_file(path))
+            if WX_ACCESS_TOKEN:
+                send_wx_file(upload_wx_file(path))
         if self.dd:
             get_dd_token()
-            send_dd_file(upload_dd_file(path))
+            if DD_ACCESS_TOKEN:
+                send_dd_file(upload_dd_file(path))
         if self.fs:
             get_fs_token()
-            send_fs_file(upload_fs_file(path))
+            if FS_ACCESS_TOKEN:
+                send_fs_file(upload_fs_file(path))
 
 def get_pdf_size(pdf_writer):
     temp_io = io.BytesIO()
