@@ -129,6 +129,8 @@ class yuketang:
         try:
             self.lessonIdNewList = []
             if online_data['data']['onLessonClassrooms'] == []:
+                for lessonId in self.lessonIdDict:
+                    self.lessonIdDict[lessonId].get('websocket', '').close()
                 self.lessonIdDict = {}
                 return False
             for item in online_data['data']['onLessonClassrooms']:
@@ -142,6 +144,7 @@ class yuketang:
             to_delete = [lessonId for lessonId, details in self.lessonIdDict.items() if not details.get('active', '0') == '1']
             for lessonId in to_delete:
                 del self.lessonIdDict[lessonId]
+                self.lessonIdDict[lessonId].get('websocket', '').close()
             for lessonId in self.lessonIdDict:
                 self.lessonIdDict[lessonId]['active'] = '0'
             if self.lessonIdNewList:
@@ -315,7 +318,6 @@ class yuketang:
             self.msgmgr.sendImage("qrcode.jpg")
             server_response = await asyncio.wait_for(recv_json(websocket),timeout=120)
             self.weblogin(server_response['UserID'],server_response['Auth'])
-        await websocket.close()
 
     async def ws_lesson(self,lessonId):
         flag_ppt=1
@@ -340,6 +342,7 @@ class yuketang:
                 "lessonid": lessonId
             }
             await websocket.send(json.dumps(hello_message))
+            self.lessonIdDict[lessonId]['websocket'] = websocket
             while True and time.time()-self.lessonIdDict[lessonId]['start_time']<36000:
                 try:
                     server_response = await recv_json(websocket)
@@ -446,8 +449,8 @@ class yuketang:
                         del self.lessonIdDict[lessonId]['si']
                     else:
                         flag_si=0
+            self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：连接关闭")
             del self.lessonIdDict[lessonId]
-        await websocket.close()
 
     async def lesson_attend(self):
         tasks = [asyncio.create_task(self.ws_lesson(lessonId)) for lessonId in self.lessonIdNewList]
