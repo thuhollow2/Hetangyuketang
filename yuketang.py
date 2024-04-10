@@ -20,9 +20,10 @@ class yuketang:
         self.lessonIdDict = {}
         self.wx=False # 设置为True时启用企业微信推送，须在send.py设置CompanyId、AgentId、Secret
         self.dd=False # 设置为True时启用钉钉推送，须在send.py设置Appkey、Appsecret、RobotCode、OpenConversationId
+        self.fs=False # 设置为True时启用飞书推送，须在send.py设置AppId、AppSecret、OpenId
         self.an=False # 设置为True时自动答题
         self.si=False # 设置为True时实时推送PPT进度
-        self.msgmgr=SendManager(wx=self.wx,dd=self.dd)
+        self.msgmgr=SendManager(wx=self.wx,dd=self.dd,fs=self.fs)
 
     async def getcookie(self):
         while True:
