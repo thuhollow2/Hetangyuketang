@@ -10,6 +10,7 @@ os.chdir(current_dir)
 
 global WX_ACCESS_TOKEN
 global DD_ACCESS_TOKEN
+global FS_ACCESS_TOKEN
 
 wx_touser = '@all' # 发送给所有人
 wx_agentId = 'XXXX'
@@ -20,6 +21,10 @@ dd_appKey = 'XXXX'
 dd_appSecret = 'XXXX'
 dd_robotCode = 'XXXX'
 dd_openConversationId = 'XXXX'
+
+fs_appId = 'XXXX'
+fs_appSecret = 'XXXX'
+fs_openId = 'XXXX'
 
 def get_wx_token():
     global WX_ACCESS_TOKEN
@@ -61,10 +66,31 @@ def get_dd_token():
         with open('DD_ACCESS_TOKEN.txt', 'w', encoding='utf-8') as f:
             f.write(DD_ACCESS_TOKEN)
 
+def get_fs_token():
+    global FS_ACCESS_TOKEN
+    FS_ACCESS_TOKEN = None
+    if os.path.exists('FS_ACCESS_TOKEN.txt'):
+        txt_last_edit_time = os.stat('FS_ACCESS_TOKEN.txt').st_mtime
+        now_time = time.time()
+        if now_time - txt_last_edit_time < 7000:  # 2小时刷新
+            with open('FS_ACCESS_TOKEN.txt', 'r') as f:
+                FS_ACCESS_TOKEN = f.read()
+    if not FS_ACCESS_TOKEN:
+        try:
+            r = requests.post(
+                f'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', json={'app_id': fs_appId, 'app_secret': fs_appSecret}, timeout=15).json()
+        except Exception as e:
+            print(f"获取通行密钥时发生错误: {e}")
+            return
+        FS_ACCESS_TOKEN = r["tenant_access_token"]
+        with open('FS_ACCESS_TOKEN.txt', 'w', encoding='utf-8') as f:
+            f.write(FS_ACCESS_TOKEN)
+
 class SendManager:
-    def __init__(self,wx=False,dd=False) -> None:
+    def __init__(self,wx=False,dd=False,fs=False) -> None:
         self.wx=wx
         self.dd=dd
+        self.fs=fs
 
     def sendMsg(self,msg):
         print(msg)
@@ -74,6 +100,9 @@ class SendManager:
         if self.dd:
             get_dd_token()
             send_dd_msg(msg_part(msg, 3000))
+        if self.fs:
+            get_fs_token()
+            send_fs_msg(msg_part(msg, 10000))
     
     def sendImage(self,path):
         if self.wx:
@@ -82,6 +111,9 @@ class SendManager:
         if self.dd:
             get_dd_token()
             send_dd_image(upload_dd_file(path))
+        if self.fs:
+            get_fs_token()
+            send_fs_image(upload_fs_image(path))
 
     def sendFile(self,path):
         if self.wx:
@@ -90,6 +122,9 @@ class SendManager:
         if self.dd:
             get_dd_token()
             send_dd_file(upload_dd_file(path))
+        if self.fs:
+            get_fs_token()
+            send_fs_file(upload_fs_file(path))
 
 def get_pdf_size(pdf_writer):
     temp_io = io.BytesIO()
@@ -175,7 +210,7 @@ def upload_wx_file(filepath):
         try:
             r=requests.post(f'https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token={WX_ACCESS_TOKEN}&type=file', files=files, timeout=15)
         except Exception as e:
-            print(f"上传文件时发生错误: {e}")
+            print(f"企业微信文件上传发生错误: {e}")
             return
         media_ids.append(r.json()['media_id'])
     return media_ids
@@ -193,7 +228,7 @@ def send_wx_msg(parts):
             r = requests.post(
                 f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={WX_ACCESS_TOKEN}', data=data, timeout=15)
         except Exception as e:
-            print(f"发送消息时发生错误: {e}")
+            print(f"企业微信消息发送发生错误: {e}")
             return
         time.sleep(1)
 
@@ -210,7 +245,7 @@ def send_wx_image(media_ids):
             r = requests.post(
                 f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={WX_ACCESS_TOKEN}', data=data, timeout=15)
         except Exception as e:
-            print(f"发送图片时发生错误: {e}")
+            print(f"企业微信图片发送发生错误: {e}")
             return
         time.sleep(1)
 
@@ -227,7 +262,7 @@ def send_wx_file(media_ids):
             r = requests.post(
                 f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={WX_ACCESS_TOKEN}', data=data, timeout=15)
         except Exception as e:
-            print(f"发送文件时发生错误: {e}")
+            print(f"企业微信文件发送发生错误: {e}")
             return
         time.sleep(1)
 
@@ -245,7 +280,7 @@ def upload_dd_file(filepath):
         try:
             r=requests.post(f'https://oapi.dingtalk.com/media/upload?access_token={DD_ACCESS_TOKEN}&type=file', files=files, timeout=15)
         except Exception as e:
-            print(f"上传文件时发生错误: {e}")
+            print(f"钉钉文件上传发生错误: {e}")
             return
         media_ids[r.json()['media_id']] = os.path.basename(path)
     return media_ids
@@ -267,7 +302,7 @@ def send_dd_msg(parts):
             r = requests.post(
                 f'https://api.dingtalk.com/v1.0/robot/groupMessages/send', headers=headers, data=data, timeout=15)
         except Exception as e:
-            print(f"发送消息时发生错误: {e}")
+            print(f"钉钉消息发送发生错误: {e}")
             return
         time.sleep(1)
 
@@ -288,7 +323,7 @@ def send_dd_image(media_ids):
             r = requests.post(
                 f'https://api.dingtalk.com/v1.0/robot/groupMessages/send', headers=headers, data=data, timeout=15)
         except Exception as e:
-            print(f"发送图片时发生错误: {e}")
+            print(f"钉钉图片发送发生错误: {e}")
             return
         time.sleep(1)
 
@@ -311,6 +346,114 @@ def send_dd_file(media_ids):
             r = requests.post(
                 f'https://api.dingtalk.com/v1.0/robot/groupMessages/send', headers=headers, data=data, timeout=15)
         except Exception as e:
-            print(f"发送文件时发生错误: {e}")
+            print(f"钉钉文件发送发生错误: {e}")
+            return
+        time.sleep(1)
+
+def upload_fs_image(filepath):
+    filepaths = [filepath]
+    media_ids = []
+    for path in filepaths:
+        headers = {
+            'Authorization': 'Bearer ' + FS_ACCESS_TOKEN
+        }
+        data = {
+            'image_type': 'message'
+        }
+        files = {
+            'image': open(path, 'rb')
+        }
+        try:
+            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/images', headers=headers, data=data, files=files, timeout=15)
+        except Exception as e:
+            print(f"飞书图片上传发生错误: {e}")
+            return
+        media_ids.append(r.json()['data']['image_key'])
+    return media_ids
+
+def upload_fs_file(filepath):
+    _, ext = os.path.splitext(filepath)
+    fileType = ext[1:]
+    if ext.lower() == '.pdf':
+        filepaths = split_pdf(filepath, 31457280) # 30MB
+    else:
+        filepaths = [filepath]
+    media_ids = []
+    for path in filepaths:
+        headers = {
+            'Authorization': 'Bearer ' + FS_ACCESS_TOKEN
+        }
+        data = {
+            'file_type': fileType,
+            'file_name': os.path.basename(path)
+        }
+        files = {
+            'file': open(path, 'rb')
+        }
+        try:
+            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/files', headers=headers, data=data, files=files, timeout=15)
+        except Exception as e:
+            print(f"飞书文件上传发生错误: {e}")
+            return
+        media_ids.append(r.json()['data']['file_key'])
+    return media_ids
+
+def send_fs_msg(parts):
+    for part in parts:
+        headers = {
+            'Authorization': 'Bearer ' + FS_ACCESS_TOKEN
+        }
+        body = {
+            "receive_id": fs_openId,
+            "msg_type": "text",
+            "content": json.dumps({
+                "text": part
+            })
+        }
+        params = {"receive_id_type": "open_id"}
+        try:
+            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/messages', params=params, headers=headers, json=body, timeout=15)
+        except Exception as e:
+            print(f"飞书消息发送发生错误: {e}")
+            return
+        time.sleep(1)
+
+def send_fs_image(media_ids):
+    for id in media_ids:
+        headers = {
+            'Authorization': 'Bearer ' + FS_ACCESS_TOKEN
+        }
+        body = {
+            "receive_id": fs_openId,
+            "msg_type": "image",
+            "content": json.dumps({
+                "image_key": id
+            })
+        }
+        params = {"receive_id_type": "open_id"}
+        try:
+            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/messages', params=params, headers=headers, json=body, timeout=15)
+        except Exception as e:
+            print(f"飞书图片发送发生错误: {e}")
+            return
+        time.sleep(1)
+
+def send_fs_file(media_ids):
+    for id in media_ids:
+        headers = {
+            'Authorization': 'Bearer ' + FS_ACCESS_TOKEN
+        }
+        body = {
+            "receive_id": fs_openId,
+            "msg_type": "file",
+            "content": json.dumps({
+                "file_key": id
+            })
+        }
+        params = {"receive_id_type": "open_id"}
+        try:
+            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/messages', params=params, headers=headers, json=body, timeout=15)
+        except Exception as e:
+            print(f"飞书文件发送发生错误: {e}")
             return
         time.sleep(1)
