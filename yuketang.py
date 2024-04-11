@@ -9,6 +9,8 @@ from util import *
 from send import *
 from random import *
 
+timeout=30
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
 
@@ -28,7 +30,7 @@ class yuketang:
     async def getcookie(self):
         while True:
             if not os.path.exists(self.cookie_filename):
-                self.msgmgr.sendMsg("正在第一次获取登录cookie，请用微信扫码")
+                self.msgmgr.sendMsg("正在第一次获取登录cookie，请微信扫码")
                 await self.ws_controller(self.ws_login, retries=1000, delay=0)
             with open(self.cookie_filename, "r") as f:
                 lines = f.readlines()
@@ -55,7 +57,7 @@ class yuketang:
             "Content-Type":"application/json"
         }
         try:
-            res=requests.post(url=url,headers=headers,json=data,timeout=15)
+            res=requests.post(url=url,headers=headers,json=data,timeout=timeout)
         except Exception as e:
             print(f"登录失败: {e}")
             return
@@ -89,7 +91,7 @@ class yuketang:
             "cookie":self.cookie
         }
         try:
-            res=requests.get(url=url,headers=headers,timeout=15).json()
+            res=requests.get(url=url,headers=headers,timeout=timeout).json()
             return res
         except Exception as e:
             return {}
@@ -103,7 +105,7 @@ class yuketang:
             "Authorization":self.lessonIdDict[lessonId]['Authorization']
         }
         try:
-            res=requests.get(url=url,headers=headers,timeout=15)
+            res=requests.get(url=url,headers=headers,timeout=timeout)
         except Exception as e:
             return
         self.setAuthorization(res,lessonId)
@@ -123,7 +125,7 @@ class yuketang:
             "cookie":self.cookie
         }
         try:
-            online_data=requests.get(url=url,headers=headers,timeout=15).json()
+            online_data=requests.get(url=url,headers=headers,timeout=timeout).json()
         except Exception as e:
             return False
         try:
@@ -168,7 +170,7 @@ class yuketang:
                 "lessonId":lessonId
             }
             try:
-                res=requests.post(url=url,headers=headers,json=data,timeout=15)
+                res=requests.post(url=url,headers=headers,json=data,timeout=timeout)
             except Exception as e:
                 return
             self.setAuthorization(res,lessonId)
@@ -195,11 +197,14 @@ class yuketang:
             "cookie": self.cookie,
             "Authorization": self.lessonIdDict[lessonId]['Authorization']
         }
-        res=requests.get(url, headers=headers, timeout=15)
+        res=requests.get(url, headers=headers, timeout=timeout)
         self.setAuthorization(res, lessonId)
         info = res.json()
         slides=info['data']['slides']    #获得幻灯片列表
         self.lessonIdDict[lessonId]['problems']={}
+        self.lessonIdDict[lessonId]['covers']=[slide['index'] for slide in slides if slide.get('cover') is not None]
+        if self.lessonIdDict[lessonId]['covers'] == []:
+            del self.lessonIdDict[lessonId]['covers']
         for slide in slides:
             if slide.get("problem") is not None:
                 self.lessonIdDict[lessonId]['problems'][slide['id']]=slide['problem']
@@ -235,20 +240,20 @@ class yuketang:
         else:
             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n{format_json_to_text(self.lessonIdDict[lessonId]['problems'], self.lessonIdDict[lessonId].get('unlockedproblem', []))}")
         folder_path=lessonId
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, clear_folder, folder_path)
-        await loop.run_in_executor(None, download_images_to_folder, slides, folder_path)
-        output_pdf_path=os.path.join(folder_path, f"{self.lessonIdDict[lessonId]['classroomName']}-{self.lessonIdDict[lessonId]['title']}.pdf")
-        await loop.run_in_executor(None, images_to_pdf, folder_path, output_pdf_path)
-        if os.path.exists(output_pdf_path):
-            self.lessonIdDict[lessonId]['noPPT']='0'
-            try:
-                self.msgmgr.sendFile(output_pdf_path)
-            except Exception as e:
-                self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：PPT推送失败")
-        else:
-            self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：没有PPT")
-            self.lessonIdDict[lessonId]['noPPT']='1'
+        async def fetch_presentation_background():
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, clear_folder, folder_path)
+            await loop.run_in_executor(None, download_images_to_folder, slides, folder_path)
+            output_pdf_path=os.path.join(folder_path, f"{self.lessonIdDict[lessonId]['classroomName']}-{self.lessonIdDict[lessonId]['title']}.pdf")
+            await loop.run_in_executor(None, images_to_pdf, folder_path, output_pdf_path)
+            if os.path.exists(output_pdf_path):
+                try:
+                    self.msgmgr.sendFile(output_pdf_path)
+                except Exception as e:
+                    self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：PPT推送失败")
+            else:
+                self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：没有PPT")
+        asyncio.create_task(fetch_presentation_background())
 
     def answer(self,lessonId):
         url="https://pro.yuketang.cn/api/v3/lesson/problem/answer"
@@ -281,7 +286,7 @@ class yuketang:
             "result":self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers']
         }
         try:
-            res=requests.post(url=url,headers=headers,json=data,timeout=15)
+            res=requests.post(url=url,headers=headers,json=data,timeout=timeout)
         except Exception as e:
             return
         self.setAuthorization(res,lessonId)
@@ -321,14 +326,11 @@ class yuketang:
 
     async def ws_lesson(self,lessonId):
         flag_ppt=1
-        if self.lessonIdDict[lessonId].get('noPPT') is not None:
-            flag_ppt=0
-        elif self.lessonIdDict[lessonId].get('noPPT') is None and self.lessonIdDict[lessonId].get('presentation') is not None:
+        if self.lessonIdDict[lessonId].get('presentation') is not None:
             del self.lessonIdDict[lessonId]['presentation']
         flag_si=1
         if self.lessonIdDict[lessonId].get('si') is not None:
             del self.lessonIdDict[lessonId]['si']
-        flag_unlock=1
         if self.lessonIdDict[lessonId].get('unlockedproblem') is not None:
             del self.lessonIdDict[lessonId]['unlockedproblem']
         uri = "wss://pro.yuketang.cn/wsapp/"
@@ -357,7 +359,6 @@ class yuketang:
                             if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != item['pres']:
                                 flag_ppt=1
                                 flag_si=1
-                                flag_unlock=1
                                 del self.lessonIdDict[lessonId]['si']
                                 del self.lessonIdDict[lessonId]['unlockedproblem']
                                 self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：课件更新")
@@ -368,7 +369,6 @@ class yuketang:
                         if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['presentation']:
                             flag_ppt=1
                             flag_si=1
-                            flag_unlock=1
                             del self.lessonIdDict[lessonId]['si']
                             del self.lessonIdDict[lessonId]['unlockedproblem']
                             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：课件更新")
@@ -382,7 +382,6 @@ class yuketang:
                         if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['presentation']:
                             flag_ppt=1
                             flag_si=1
-                            flag_unlock=1
                             del self.lessonIdDict[lessonId]['si']
                             del self.lessonIdDict[lessonId]['unlockedproblem']
                             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：课件更新")
@@ -396,7 +395,6 @@ class yuketang:
                         if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['slide']['pres']:
                             flag_ppt=1
                             flag_si=1
-                            flag_unlock=1
                             del self.lessonIdDict[lessonId]['si']
                             del self.lessonIdDict[lessonId]['unlockedproblem']
                             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：课件更新")
@@ -410,7 +408,6 @@ class yuketang:
                         if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['problem']['pres']:
                             flag_ppt=1
                             flag_si=1
-                            flag_unlock=1
                             del self.lessonIdDict[lessonId]['si']
                             del self.lessonIdDict[lessonId]['unlockedproblem']
                             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：课件更新")
@@ -437,14 +434,11 @@ class yuketang:
                 elif op=="lessonfinished":
                     self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：下课了")
                     break
-                if flag_unlock==1 and self.lessonIdDict[lessonId].get('unlockedproblem') is not None:
-                    flag_unlock=0
                 if flag_ppt==1 and self.lessonIdDict[lessonId].get('presentation') is not None:
                     flag_ppt=0
                     await self.fetch_presentation(lessonId)
-                if flag_si==1 and self.lessonIdDict[lessonId].get('noPPT') is not None and self.lessonIdDict[lessonId].get('si') is not None:
-                    if self.lessonIdDict[lessonId]['noPPT'] == '0':
-                        self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：正在播放PPT第{self.lessonIdDict[lessonId]['si']}页")
+                if flag_si==1 and self.lessonIdDict[lessonId].get('si') is not None and self.lessonIdDict[lessonId].get('covers') is not None and self.lessonIdDict[lessonId]['si'] in self.lessonIdDict[lessonId]['covers']:
+                    self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息：正在播放PPT第{self.lessonIdDict[lessonId]['si']}页")
                     if self.si:
                         del self.lessonIdDict[lessonId]['si']
                     else:
@@ -464,4 +458,4 @@ async def ykt_user():
         if ykt.getlesson():
             ykt.lesson_checkin()
             await ykt.lesson_attend()
-        await asyncio.sleep(30)
+        await asyncio.sleep(30)c
