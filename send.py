@@ -5,6 +5,8 @@ import time
 import io
 from PyPDF2 import PdfReader, PdfWriter
 
+timeout=30
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
 
@@ -38,7 +40,7 @@ def get_wx_token():
     if not WX_ACCESS_TOKEN:
         try:
             r = requests.post(
-                f'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={wx_companyId}&corpsecret={wx_secret}', timeout=15).json()
+                f'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={wx_companyId}&corpsecret={wx_secret}', timeout=timeout).json()
         except Exception as e:
             print(f"获取通行密钥时发生错误: {e}")
             return
@@ -58,7 +60,7 @@ def get_dd_token():
     if not DD_ACCESS_TOKEN:
         try:
             r = requests.post(
-                f'https://api.dingtalk.com/v1.0/oauth2/accessToken', json={'appKey': dd_appKey, 'appSecret': dd_appSecret}, timeout=15).json()
+                f'https://api.dingtalk.com/v1.0/oauth2/accessToken', json={'appKey': dd_appKey, 'appSecret': dd_appSecret}, timeout=timeout).json()
         except Exception as e:
             print(f"获取通行密钥时发生错误: {e}")
             return
@@ -78,7 +80,7 @@ def get_fs_token():
     if not FS_ACCESS_TOKEN:
         try:
             r = requests.post(
-                f'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', json={'app_id': fs_appId, 'app_secret': fs_appSecret}, timeout=15).json()
+                f'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', json={'app_id': fs_appId, 'app_secret': fs_appSecret}, timeout=timeout).json()
         except Exception as e:
             print(f"获取通行密钥时发生错误: {e}")
             return
@@ -217,7 +219,7 @@ def upload_wx_file(filepath):
             'file': open(path, 'rb')
         }
         try:
-            r=requests.post(f'https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token={WX_ACCESS_TOKEN}&type=file', files=files, timeout=15)
+            r=requests.post(f'https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token={WX_ACCESS_TOKEN}&type=file', files=files, timeout=timeout)
         except Exception as e:
             print(f"企业微信文件上传发生错误: {e}")
             return
@@ -235,7 +237,7 @@ def send_wx_msg(parts):
         data = json.dumps(data)
         try:
             r = requests.post(
-                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={WX_ACCESS_TOKEN}', data=data, timeout=15)
+                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={WX_ACCESS_TOKEN}', data=data, timeout=timeout)
         except Exception as e:
             print(f"企业微信消息发送发生错误: {e}")
             return
@@ -252,7 +254,7 @@ def send_wx_image(media_ids):
         data = json.dumps(data)
         try:
             r = requests.post(
-                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={WX_ACCESS_TOKEN}', data=data, timeout=15)
+                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={WX_ACCESS_TOKEN}', data=data, timeout=timeout)
         except Exception as e:
             print(f"企业微信图片发送发生错误: {e}")
             return
@@ -269,7 +271,7 @@ def send_wx_file(media_ids):
         data = json.dumps(data)
         try:
             r = requests.post(
-                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={WX_ACCESS_TOKEN}', data=data, timeout=15)
+                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={WX_ACCESS_TOKEN}', data=data, timeout=timeout)
         except Exception as e:
             print(f"企业微信文件发送发生错误: {e}")
             return
@@ -287,7 +289,7 @@ def upload_dd_file(filepath):
             'media': open(path, 'rb')
         }
         try:
-            r=requests.post(f'https://oapi.dingtalk.com/media/upload?access_token={DD_ACCESS_TOKEN}&type=file', files=files, timeout=15)
+            r=requests.post(f'https://oapi.dingtalk.com/media/upload?access_token={DD_ACCESS_TOKEN}&type=file', files=files, timeout=timeout)
         except Exception as e:
             print(f"钉钉文件上传发生错误: {e}")
             return
@@ -309,7 +311,7 @@ def send_dd_msg(parts):
         data = json.dumps(data)
         try:
             r = requests.post(
-                f'https://api.dingtalk.com/v1.0/robot/groupMessages/send', headers=headers, data=data, timeout=15)
+                f'https://api.dingtalk.com/v1.0/robot/groupMessages/send', headers=headers, data=data, timeout=timeout)
         except Exception as e:
             print(f"钉钉消息发送发生错误: {e}")
             return
@@ -330,7 +332,7 @@ def send_dd_image(media_ids):
         data = json.dumps(data)
         try:
             r = requests.post(
-                f'https://api.dingtalk.com/v1.0/robot/groupMessages/send', headers=headers, data=data, timeout=15)
+                f'https://api.dingtalk.com/v1.0/robot/groupMessages/send', headers=headers, data=data, timeout=timeout)
         except Exception as e:
             print(f"钉钉图片发送发生错误: {e}")
             return
@@ -353,7 +355,7 @@ def send_dd_file(media_ids):
         data = json.dumps(data)
         try:
             r = requests.post(
-                f'https://api.dingtalk.com/v1.0/robot/groupMessages/send', headers=headers, data=data, timeout=15)
+                f'https://api.dingtalk.com/v1.0/robot/groupMessages/send', headers=headers, data=data, timeout=timeout)
         except Exception as e:
             print(f"钉钉文件发送发生错误: {e}")
             return
@@ -373,7 +375,7 @@ def upload_fs_image(filepath):
             'image': open(path, 'rb')
         }
         try:
-            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/images', headers=headers, data=data, files=files, timeout=15)
+            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/images', headers=headers, data=data, files=files, timeout=timeout)
         except Exception as e:
             print(f"飞书图片上传发生错误: {e}")
             return
@@ -400,7 +402,7 @@ def upload_fs_file(filepath):
             'file': open(path, 'rb')
         }
         try:
-            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/files', headers=headers, data=data, files=files, timeout=15)
+            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/files', headers=headers, data=data, files=files, timeout=timeout)
         except Exception as e:
             print(f"飞书文件上传发生错误: {e}")
             return
@@ -421,7 +423,7 @@ def send_fs_msg(parts):
         }
         params = {"receive_id_type": "open_id"}
         try:
-            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/messages', params=params, headers=headers, json=body, timeout=15)
+            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/messages', params=params, headers=headers, json=body, timeout=timeout)
         except Exception as e:
             print(f"飞书消息发送发生错误: {e}")
             return
@@ -441,7 +443,7 @@ def send_fs_image(media_ids):
         }
         params = {"receive_id_type": "open_id"}
         try:
-            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/messages', params=params, headers=headers, json=body, timeout=15)
+            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/messages', params=params, headers=headers, json=body, timeout=timeout)
         except Exception as e:
             print(f"飞书图片发送发生错误: {e}")
             return
@@ -461,7 +463,7 @@ def send_fs_file(media_ids):
         }
         params = {"receive_id_type": "open_id"}
         try:
-            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/messages', params=params, headers=headers, json=body, timeout=15)
+            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/messages', params=params, headers=headers, json=body, timeout=timeout)
         except Exception as e:
             print(f"飞书文件发送发生错误: {e}")
             return
