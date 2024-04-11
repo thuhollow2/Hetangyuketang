@@ -7,6 +7,8 @@ from PIL import Image
 from datetime import datetime
 from pytz import timezone
 
+timeout=30
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
 
@@ -14,7 +16,7 @@ tz = timezone('Asia/Shanghai')
 
 def download_qrcode(url):
     try:
-        res=requests.get(url, timeout=15)
+        res=requests.get(url, timeout=timeout)
     except Exception as e:
         print(f"下载登录二维码时发生错误: {e}")
         return
@@ -49,7 +51,7 @@ def download_images_to_folder(slides, folder):
         if not item.get('cover'):
             continue
         try:
-            response = requests.get(item['cover'], timeout=15)
+            response = requests.get(item['cover'], timeout=timeout)
         except Exception as e:
             print(f"下载图片 {item['index']} 时发生错误: {e}")
             continue
