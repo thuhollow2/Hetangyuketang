@@ -6,6 +6,7 @@ import shutil
 from PIL import Image
 from datetime import datetime
 from pytz import timezone
+from concurrent.futures import ThreadPoolExecutor
 
 timeout=30
 
@@ -46,19 +47,23 @@ def clear_folder(folder_path):
         print(f'删除 {folder_path} 时发生错误。原因: {e}')
     os.makedirs(folder_path)
 
+def download_image(item, folder):
+    if not item.get('cover'):
+        return
+    try:
+        response = requests.get(item['cover'], timeout=timeout)
+    except Exception as e:
+        print(f"下载图片 {item['index']} 时发生错误: {e}")
+        return
+    if response.status_code == 200:
+        file_path = os.path.join(folder, f"{item['index']}.jpg")
+        with open(file_path, 'wb') as f:
+            f.write(response.content)
+
 def download_images_to_folder(slides, folder):
-    for item in slides:
-        if not item.get('cover'):
-            continue
-        try:
-            response = requests.get(item['cover'], timeout=timeout)
-        except Exception as e:
-            print(f"下载图片 {item['index']} 时发生错误: {e}")
-            continue
-        if response.status_code == 200:
-            file_path = os.path.join(folder, f"{item['index']}.jpg")
-            with open(file_path, 'wb') as f:
-                f.write(response.content)
+    with ThreadPoolExecutor(max_workers=20) as executor: # 下载线程数
+        for item in slides:
+            executor.submit(download_image, item, folder)
 
 def images_to_pdf(folder, output_path):
     if not os.path.exists(folder):
