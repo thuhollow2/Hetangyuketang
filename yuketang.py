@@ -458,4 +458,4 @@ async def ykt_user():
         if ykt.getlesson():
             ykt.lesson_checkin()
             await ykt.lesson_attend()
-        await asyncio.sleep(30)c
+        await asyncio.sleep(30)
