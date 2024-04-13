@@ -2,3 +2,4 @@ websockets
 requests
 Pillow
 PyPDF2
+pytz
