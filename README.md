@@ -28,7 +28,7 @@ class yuketang:
 
 说明：
 --
- - 首次运行将下载雨课堂登录二维码（可推送到客户端），扫码获取cookie，有效期约两周；有效期少于两天时，每小时初将发送提醒，请及时更新，谨防失效后消息轰炸<br>
+ - 首次运行将下载雨课堂登录二维码（可推送到客户端），微信扫码获取cookie，有效期约两周；有效期少于两天时，每小时初将发送二维码提醒，请及时扫码更新，谨防失效后消息轰炸<br>
  - 支持多线程，每30秒扫描新课堂，随后自动签到、下载课件（pdf）、打印题目及答案、查看当前PPT进度<br>
  - 白/黑名单添加课程名称，可在[雨课堂首页](https://pro.yuketang.cn/v2/web/index)课程标签里查找，具体如[图](https://raw.githubusercontent.com/thuhollow2/Hetangyuketang/main/classroomName.png)中蓝框所示
  - 签到方式为通过“正在上课”提示进入课堂<br>
