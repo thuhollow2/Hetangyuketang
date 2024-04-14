@@ -4,7 +4,7 @@ import os
 import re
 import shutil
 from PIL import Image
-from datetime import datetime
+from datetime import datetime, timedelta
 from pytz import timezone
 from concurrent.futures import ThreadPoolExecutor
 
@@ -87,6 +87,14 @@ def convert_date(timestamp_ms):
     dt = datetime.fromtimestamp(timestamp_s, tz=timezone('UTC')).astimezone(tz)
     formatted_date = dt.strftime('%Y年%m月%d日%H时%M分%S秒')
     return formatted_date
+
+def check_time(target_time_str, minutes):
+    target_time = timezone('Asia/Shanghai').localize(datetime.strptime(target_time_str, "%Y年%m月%d日%H时%M分%S秒"))
+    target_time_minus = target_time - timedelta(minutes=minutes)
+    current_time = datetime.now(timezone('Asia/Shanghai'))
+    if current_time >= target_time_minus:
+        return False
+    return True
 
 def format_json_to_text(json_data, list_data):
     index_data = []
