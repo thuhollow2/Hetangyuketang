@@ -90,7 +90,7 @@ def convert_date(timestamp_ms):
 
 def format_json_to_text(json_data, list_data):
     index_data = []
-    text_result = "问题列表：\n"
+    text_result = "问题列表:\n"
     for index, problem_info in json_data.items():
         if index in list_data:
             index_data.append(problem_info['index'])
@@ -106,7 +106,7 @@ def format_json_to_text(json_data, list_data):
             text_result += f"答案: {answer_text}\n"
         else:
             text_result += "答案: 暂无\n"
-    text_result += "已解锁问题：\n"
+    text_result += "已解锁问题:\n"
     if not index_data:
         text_result += "无\n"
     else:
