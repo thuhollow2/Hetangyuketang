@@ -16,10 +16,12 @@ os.chdir(current_dir)
 
 class yuketang:
     def __init__(self) -> None:
-        self.cookie_filename="cookie"
-        self.cookie=""
+        self.cookie=''
+        self.cookie_time=''
         self.lessonIdNewList=[]
         self.lessonIdDict = {}
+        self.classroomWhiteList = [] # 课程白名单，名字采用完全匹配，为空时不启用
+        self.clashroomBlackList = ['2023秋-机器学习-0', '2023清华实践'] # 课程黑名单，名字采用完全匹配，为空时不启用
         self.wx=False # 设置为True时启用企业微信推送，须在send.py设置CompanyId、AgentId、Secret
         self.dd=False # 设置为True时启用钉钉推送，须在send.py设置Appkey、Appsecret、RobotCode、OpenConversationId
         self.fs=False # 设置为True时启用飞书推送，须在send.py设置AppId、AppSecret、OpenId
@@ -28,21 +30,45 @@ class yuketang:
         self.msgmgr=SendManager(wx=self.wx,dd=self.dd,fs=self.fs)
 
     async def getcookie(self):
-        while True:
-            if not os.path.exists(self.cookie_filename):
-                self.msgmgr.sendMsg("正在第一次获取登录cookie，请微信扫码")
-                await self.ws_controller(self.ws_login, retries=1000, delay=0)
-            with open(self.cookie_filename, "r") as f:
+        flag = 0
+        def read_cookie():
+            with open("cookie", "r") as f:
                 lines = f.readlines()
             self.cookie = lines[0].strip()
-            if not self.check_cookie():
-                self.msgmgr.sendMsg("cookie已失效，请重新微信扫码")
-                await self.ws_controller(self.ws_login, retries=1000, delay=0)
+            if len(lines) >= 2:
+                self.cookie_time = lines[1].strip()
             else:
-                if len(lines) >= 2:
-                    self.msgmgr.sendMsg(f"cookie有效，有效期至{lines[1].strip()}")
-                else:
-                    self.msgmgr.sendMsg("cookie有效，有效期未知")
+                self.cookie_time = ''
+        while True:
+            if not os.path.exists("cookie"):
+                flag = 1
+                self.msgmgr.sendMsg("正在第一次获取登录cookie, 请微信扫码")
+                await self.ws_controller(self.ws_login, retries=1000, delay=1)
+            if not self.cookie:
+                flag = 1
+                read_cookie()
+            if self.cookie_time and not check_time(self.cookie_time, 0):
+                flag = 1
+                self.msgmgr.sendMsg(f"cookie已失效, 请重新扫码")
+                await self.ws_controller(self.ws_login, retries=1000, delay=1)
+                read_cookie()
+                continue
+            elif self.cookie_time and not check_time(self.cookie_time, 2880) and datetime.now().minute < 3:
+                flag = 1
+                self.msgmgr.sendMsg(f"cookie有效至{self.cookie_time}, 即将失效, 请重新扫码")
+                await self.ws_controller(self.ws_login, retries=0, delay=1)
+                read_cookie()
+            code = self.check_cookie()
+            if code == 1:
+                flag = 1
+                self.msgmgr.sendMsg(f"cookie已失效, 请重新扫码")
+                await self.ws_controller(self.ws_login, retries=1000, delay=1)
+                read_cookie()
+            elif code == 2:
+                self.msgmgr.sendMsg(f"检测cookie有效性失败")
+            else:
+                if self.cookie_time and flag == 1 and check_time(self.cookie_time, 2880):
+                    self.msgmgr.sendMsg(f"cookie有效至{self.cookie_time}")
                 break
 
     def weblogin(self,UserID,Auth):
@@ -70,14 +96,16 @@ class yuketang:
             content = f'{self.cookie}\n{date}'
         else:
             content = self.cookie
-        with open(self.cookie_filename,"w")as f:
+        with open("cookie","w")as f:
             f.write(content)
 
     def check_cookie(self):
         info=self.get_basicinfo()
+        if not info:
+            return 2
         if info.get("code")==0:
-            return True
-        return False
+            return 0
+        return 1
     
     def setAuthorization(self,res,lessonId):
         if res.headers.get("Set-Auth") is not None:
@@ -136,12 +164,14 @@ class yuketang:
                 self.lessonIdDict = {}
                 return False
             for item in online_data['data']['onLessonClassrooms']:
+                if (self.classroomWhiteList and item['classroomName'] not in self.classroomWhiteList) or item['classroomName'] in self.clashroomBlackList:
+                    continue
                 lessonId = item['lessonId']
                 if lessonId not in self.lessonIdDict:
                     self.lessonIdNewList.append(lessonId)
                     self.lessonIdDict[lessonId] = {}
                     self.lessonIdDict[lessonId]['start_time'] = time.time()
-                self.lessonIdDict[lessonId]['classroomName'] = item['classroomName']
+                    self.lessonIdDict[lessonId]['classroomName'] = item['classroomName']
                 self.lessonIdDict[lessonId]['active'] = '1'
             to_delete = [lessonId for lessonId, details in self.lessonIdDict.items() if not details.get('active', '0') == '1']
             for lessonId in to_delete:
@@ -294,16 +324,16 @@ class yuketang:
 
     async def ws_controller(self, func, *args, retries=3, delay=10):
         attempt = 0
-        while attempt < retries:
+        while attempt <= retries:
             try:
                 await func(*args)
                 return  # 如果成功就直接返回
             except Exception as e:
                 print(traceback.format_exc())
                 attempt += 1
-                print(f"出现异常，尝试重试 ({attempt}/{retries})")
-                if attempt < retries:
+                if attempt <= retries:
                     await asyncio.sleep(delay)
+                    print(f"出现异常, 尝试重试 ({attempt}/{retries})")
 
     async def ws_login(self):
         uri = "wss://pro.yuketang.cn/wsapp/"
@@ -321,7 +351,7 @@ class yuketang:
             qrcode_url=server_response['ticket']
             download_qrcode(qrcode_url)
             self.msgmgr.sendImage("qrcode.jpg")
-            server_response = await asyncio.wait_for(recv_json(websocket),timeout=120)
+            server_response = await asyncio.wait_for(recv_json(websocket),timeout=60)
             self.weblogin(server_response['UserID'],server_response['Auth'])
 
     async def ws_lesson(self,lessonId):
@@ -453,8 +483,8 @@ class yuketang:
 
 async def ykt_user():
     ykt = yuketang()
-    await ykt.getcookie()
     while True:
+        await ykt.getcookie()
         if ykt.getlesson():
             ykt.lesson_checkin()
             await ykt.lesson_attend()
