@@ -220,9 +220,12 @@ def upload_wx_file(filepath):
         }
         try:
             r=requests.post(f'https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token={WX_ACCESS_TOKEN}&type=file', files=files, timeout=timeout)
+            if r.json()['errcode'] == 60020:
+                print('企业微信文件上传失败: 未配置可信IP')
+                return []
         except Exception as e:
             print(f"企业微信文件上传发生错误: {e}")
-            return
+            return []
         media_ids.append(r.json()['media_id'])
     return media_ids
 
@@ -238,6 +241,9 @@ def send_wx_msg(parts):
         try:
             r = requests.post(
                 f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={WX_ACCESS_TOKEN}', data=data, timeout=timeout)
+            if r.json()['errcode'] == 60020:
+                print('企业微信消息发送失败: 未配置可信IP')
+                return
         except Exception as e:
             print(f"企业微信消息发送发生错误: {e}")
             return
@@ -255,6 +261,9 @@ def send_wx_image(media_ids):
         try:
             r = requests.post(
                 f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={WX_ACCESS_TOKEN}', data=data, timeout=timeout)
+            if r.json()['errcode'] == 60020:
+                print('企业微信图片发送失败: 未配置可信IP')
+                return
         except Exception as e:
             print(f"企业微信图片发送发生错误: {e}")
             return
@@ -272,6 +281,9 @@ def send_wx_file(media_ids):
         try:
             r = requests.post(
                 f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={WX_ACCESS_TOKEN}', data=data, timeout=timeout)
+            if r.json()['errcode'] == 60020:
+                print('企业微信文件发送失败: 未配置可信IP')
+                return
         except Exception as e:
             print(f"企业微信文件发送发生错误: {e}")
             return
@@ -292,7 +304,7 @@ def upload_dd_file(filepath):
             r=requests.post(f'https://oapi.dingtalk.com/media/upload?access_token={DD_ACCESS_TOKEN}&type=file', files=files, timeout=timeout)
         except Exception as e:
             print(f"钉钉文件上传发生错误: {e}")
-            return
+            return {}
         media_ids[r.json()['media_id']] = os.path.basename(path)
     return media_ids
 
@@ -378,7 +390,7 @@ def upload_fs_image(filepath):
             r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/images', headers=headers, data=data, files=files, timeout=timeout)
         except Exception as e:
             print(f"飞书图片上传发生错误: {e}")
-            return
+            return []
         media_ids.append(r.json()['data']['image_key'])
     return media_ids
 
@@ -405,7 +417,7 @@ def upload_fs_file(filepath):
             r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/files', headers=headers, data=data, files=files, timeout=timeout)
         except Exception as e:
             print(f"飞书文件上传发生错误: {e}")
-            return
+            return []
         media_ids.append(r.json()['data']['file_key'])
     return media_ids
 
