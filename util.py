@@ -89,9 +89,9 @@ def convert_date(timestamp_ms):
     return formatted_date
 
 def check_time(target_time_str, minutes):
-    target_time = timezone('Asia/Shanghai').localize(datetime.strptime(target_time_str, "%Y年%m月%d日%H时%M分%S秒"))
+    target_time = tz.localize(datetime.strptime(target_time_str, "%Y年%m月%d日%H时%M分%S秒"))
     target_time_minus = target_time - timedelta(minutes=minutes)
-    current_time = datetime.now(timezone('Asia/Shanghai'))
+    current_time = datetime.now(tz)
     if current_time >= target_time_minus:
         return False
     return True
