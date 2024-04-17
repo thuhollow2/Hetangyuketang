@@ -11,6 +11,8 @@ from random import *
 
 timeout=30
 
+domain='pro.yuketang.cn' # 荷塘雨课堂
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
 
@@ -72,13 +74,13 @@ class yuketang:
                 break
 
     def weblogin(self,UserID,Auth):
-        url="https://pro.yuketang.cn/pc/web_login"
+        url=f"https://{domain}/pc/web_login"
         data={
             "UserID":UserID,
             "Auth":Auth
         }
         headers={
-            "referer":"https://pro.yuketang.cn/web?next=/v2/web/index&type=3",
+            "referer":f"https://{domain}/web?next=/v2/web/index&type=3",
             "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
             "Content-Type":"application/json"
         }
@@ -112,9 +114,9 @@ class yuketang:
             self.lessonIdDict[lessonId]['Authorization']="Bearer "+res.headers.get("Set-Auth")
 
     def get_basicinfo(self):
-        url="https://pro.yuketang.cn/api/v3/user/basic-info"
+        url=f"https://{domain}/api/v3/user/basic-info"
         headers={
-            "referer":"https://pro.yuketang.cn/web?next=/v2/web/index&type=3",
+            "referer":f"https://{domain}/web?next=/v2/web/index&type=3",
             "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
             "cookie":self.cookie
         }
@@ -125,9 +127,9 @@ class yuketang:
             return {}
 
     def lesson_info(self,lessonId):
-        url="https://pro.yuketang.cn/api/v3/lesson/basic-info"
+        url=f"https://{domain}/api/v3/lesson/basic-info"
         headers={
-            "referer":f"https://pro.yuketang.cn/lesson/fullscreen/v3/{lessonId}?source=5",
+            "referer":f"https://{domain}/lesson/fullscreen/v3/{lessonId}?source=5",
             "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
             "cookie":self.cookie,
             "Authorization":self.lessonIdDict[lessonId]['Authorization']
@@ -146,9 +148,9 @@ class yuketang:
             self.lessonIdDict[lessonId]['header'] = f"课程: {classroomName}\n标题: 获取失败\n教师: 获取失败\n开始时间: 获取失败"
 
     def getlesson(self):
-        url="https://pro.yuketang.cn/api/v3/classroom/on-lesson-upcoming-exam"
+        url=f"https://{domain}/api/v3/classroom/on-lesson-upcoming-exam"
         headers={
-            "referer":"https://pro.yuketang.cn/web?next=/v2/web/index&type=3",
+            "referer":f"https://{domain}/web?next=/v2/web/index&type=3",
             "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
             "cookie":self.cookie
         }
@@ -188,9 +190,9 @@ class yuketang:
 
     def lesson_checkin(self):
         for lessonId in self.lessonIdNewList:
-            url="https://pro.yuketang.cn/api/v3/lesson/checkin"
+            url=f"https://{domain}/api/v3/lesson/checkin"
             headers={
-                "referer":f"https://pro.yuketang.cn/lesson/fullscreen/v3/{lessonId}?source=5",
+                "referer":f"https://{domain}/lesson/fullscreen/v3/{lessonId}?source=5",
                 "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
                 "Content-Type":"application/json; charset=utf-8",
                 "cookie":self.cookie
@@ -220,9 +222,9 @@ class yuketang:
                 self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 签到失败")
     
     async def fetch_presentation(self, lessonId):
-        url = f"https://pro.yuketang.cn/api/v3/lesson/presentation/fetch?presentation_id={self.lessonIdDict[lessonId]['presentation']}"
+        url = f"https://{domain}/api/v3/lesson/presentation/fetch?presentation_id={self.lessonIdDict[lessonId]['presentation']}"
         headers = {
-            "referer": f"https://pro.yuketang.cn/lesson/fullscreen/v3/{lessonId}?source=5",
+            "referer": f"https://{domain}/lesson/fullscreen/v3/{lessonId}?source=5",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
             "cookie": self.cookie,
             "Authorization": self.lessonIdDict[lessonId]['Authorization']
@@ -233,8 +235,6 @@ class yuketang:
         slides=info['data']['slides']    #获得幻灯片列表
         self.lessonIdDict[lessonId]['problems']={}
         self.lessonIdDict[lessonId]['covers']=[slide['index'] for slide in slides if slide.get('cover') is not None]
-        if self.lessonIdDict[lessonId]['covers'] == []:
-            del self.lessonIdDict[lessonId]['covers']
         for slide in slides:
             if slide.get("problem") is not None:
                 self.lessonIdDict[lessonId]['problems'][slide['id']]=slide['problem']
@@ -286,9 +286,9 @@ class yuketang:
         asyncio.create_task(fetch_presentation_background())
 
     def answer(self,lessonId):
-        url="https://pro.yuketang.cn/api/v3/lesson/problem/answer"
+        url=f"https://{domain}/api/v3/lesson/problem/answer"
         headers={
-            "referer":f"https://pro.yuketang.cn/lesson/fullscreen/v3/{lessonId}?source=5",
+            "referer":f"https://{domain}/lesson/fullscreen/v3/{lessonId}?source=5",
             "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
             "cookie":self.cookie,
             "Content-Type":"application/json",
@@ -336,7 +336,7 @@ class yuketang:
                     print(f"出现异常, 尝试重试 ({attempt}/{retries})")
 
     async def ws_login(self):
-        uri = "wss://pro.yuketang.cn/wsapp/"
+        uri = f"wss://{domain}/wsapp/"
         async with websockets.connect(uri, ping_timeout=100, ping_interval=5) as websocket:
             # 发送 "hello" 消息以建立连接
             hello_message = {
@@ -356,14 +356,17 @@ class yuketang:
 
     async def ws_lesson(self,lessonId):
         flag_ppt=1
-        if self.lessonIdDict[lessonId].get('presentation') is not None:
-            del self.lessonIdDict[lessonId]['presentation']
         flag_si=1
-        if self.lessonIdDict[lessonId].get('si') is not None:
-            del self.lessonIdDict[lessonId]['si']
-        if self.lessonIdDict[lessonId].get('unlockedproblem') is not None:
-            del self.lessonIdDict[lessonId]['unlockedproblem']
-        uri = "wss://pro.yuketang.cn/wsapp/"
+        def del_dict():
+            nonlocal flag_ppt, flag_si
+            flag_ppt=1
+            flag_si=1
+            keys_to_remove = ['presentation', 'si', 'unlockedproblem', 'covers']
+            for key in keys_to_remove:
+                if self.lessonIdDict[lessonId].get(key) is not None:
+                    del self.lessonIdDict[lessonId][key]
+        del_dict()
+        uri = f"wss://{domain}/wsapp/"
         async with websockets.connect(uri, ping_timeout=60, ping_interval=5) as websocket:
             # 发送 "hello" 消息以建立连接
             hello_message = {
@@ -387,20 +390,14 @@ class yuketang:
                     for item in reversed_timeline:
                         if 'pres' in item:
                             if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != item['pres']:
-                                flag_ppt=1
-                                flag_si=1
-                                del self.lessonIdDict[lessonId]['si']
-                                del self.lessonIdDict[lessonId]['unlockedproblem']
+                                del_dict()
                                 self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课件更新")
                             self.lessonIdDict[lessonId]['presentation']=item['pres']
                             self.lessonIdDict[lessonId]['si']=item['si']
                             break
                     if server_response.get('presentation'):
                         if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['presentation']:
-                            flag_ppt=1
-                            flag_si=1
-                            del self.lessonIdDict[lessonId]['si']
-                            del self.lessonIdDict[lessonId]['unlockedproblem']
+                            del_dict()
                             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课件更新")
                         self.lessonIdDict[lessonId]['presentation']=server_response['presentation']
                     if server_response.get('slideindex'):
@@ -410,10 +407,7 @@ class yuketang:
                 elif op=="showpresentation" or op=="presentationupdated" or op=="presentationcreated":
                     if server_response.get('presentation'):
                         if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['presentation']:
-                            flag_ppt=1
-                            flag_si=1
-                            del self.lessonIdDict[lessonId]['si']
-                            del self.lessonIdDict[lessonId]['unlockedproblem']
+                            del_dict()
                             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课件更新")
                         self.lessonIdDict[lessonId]['presentation']=server_response['presentation']
                     if server_response.get('slideindex'):
@@ -423,10 +417,7 @@ class yuketang:
                 elif op=="slidenav":
                     if server_response['slide'].get('pres'):
                         if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['slide']['pres']:
-                            flag_ppt=1
-                            flag_si=1
-                            del self.lessonIdDict[lessonId]['si']
-                            del self.lessonIdDict[lessonId]['unlockedproblem']
+                            del_dict()
                             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课件更新")
                         self.lessonIdDict[lessonId]['presentation']=server_response['slide']['pres']
                     if server_response['slide'].get('si'):
@@ -436,10 +427,7 @@ class yuketang:
                 elif op=="unlockproblem":
                     if server_response['problem'].get('pres'):
                         if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['problem']['pres']:
-                            flag_ppt=1
-                            flag_si=1
-                            del self.lessonIdDict[lessonId]['si']
-                            del self.lessonIdDict[lessonId]['unlockedproblem']
+                            del_dict()
                             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课件更新")
                         self.lessonIdDict[lessonId]['presentation']=server_response['problem']['pres']
                     if server_response['problem'].get('si'):
