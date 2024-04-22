@@ -28,6 +28,7 @@ class yuketang:
         self.dd=False # 设置为True时启用钉钉推送，须在send.py设置Appkey、Appsecret、RobotCode、OpenConversationId
         self.fs=False # 设置为True时启用飞书推送，须在send.py设置AppId、AppSecret、OpenId
         self.an=False # 设置为True时自动答题
+        self.ppt=False # 设置为True时自动下载PPT
         self.si=False # 设置为True时实时推送PPT进度
         self.msgmgr=SendManager(wx=self.wx,dd=self.dd,fs=self.fs)
 
@@ -55,11 +56,12 @@ class yuketang:
                 await self.ws_controller(self.ws_login, retries=1000, delay=1)
                 read_cookie()
                 continue
-            elif self.cookie_time and not check_time(self.cookie_time, 2880) and datetime.now().minute < 3:
+            elif self.cookie_time and (not check_time(self.cookie_time, 2880) and datetime.now().minute < 5 or not check_time(self.cookie_time, 120)):
                 flag = 1
                 self.msgmgr.sendMsg(f"cookie有效至{self.cookie_time}, 即将失效, 请重新扫码")
                 await self.ws_controller(self.ws_login, retries=0, delay=1)
                 read_cookie()
+                continue
             code = self.check_cookie()
             if code == 1:
                 flag = 1
@@ -71,6 +73,10 @@ class yuketang:
             else:
                 if self.cookie_time and flag == 1 and check_time(self.cookie_time, 2880):
                     self.msgmgr.sendMsg(f"cookie有效至{self.cookie_time}")
+                elif self.cookie_time and flag == 1:
+                    self.msgmgr.sendMsg(f"cookie有效至{self.cookie_time}, 即将失效, 下个小时初注意扫码")
+                elif flag == 1:
+                    self.msgmgr.sendMsg(f"cookie有效, 有效期未知")
                 break
 
     def weblogin(self,UserID,Auth):
@@ -96,6 +102,7 @@ class yuketang:
         date = cookie_date(res)
         if date:
             content = f'{self.cookie}\n{date}'
+            self.cookie_time = date
         else:
             content = self.cookie
         with open("cookie","w")as f:
@@ -283,7 +290,8 @@ class yuketang:
                     self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: PPT推送失败")
             else:
                 self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 没有PPT")
-        asyncio.create_task(fetch_presentation_background())
+        if self.ppt:
+            asyncio.create_task(fetch_presentation_background())
 
     def answer(self,lessonId):
         url=f"https://{domain}/api/v3/lesson/problem/answer"
@@ -296,7 +304,7 @@ class yuketang:
         }
         if self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['problemType']==5:
             if self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers'] in [[],None,'null']:
-                self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers']=['完成']
+                self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers']=[]
         elif self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['problemType']==4:
             num_blanks = len(self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['blanks'])
             num_answers = len(self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers'])
