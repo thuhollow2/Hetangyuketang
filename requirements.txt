@@ -2,5 +2,7 @@ asyncio
 Pillow
 PyPDF2
 pytz
+pyzbar
+qrcode
 requests
 websockets
