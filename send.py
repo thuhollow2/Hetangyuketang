@@ -191,7 +191,7 @@ def split_pdf(filepath, max_size):
     return filepaths
 
 def msg_part(message, max_length):
-    lines = message.split('\n')
+    lines = str(message).split('\n')
     parts = []
     part = lines[0]
     part_length = len(part)
