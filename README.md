@@ -3,6 +3,7 @@
 ```shell
 pip install -r requirements.txt 
 ```
+pyzbar为二维码识别库，部分linux安装不全，需用软件包管理工具安装zbar相关依赖；始终失败请注释[1](https://github.com/thuhollow2/Hetangyuketang/blob/main/util.py#L8)和[2](https://github.com/thuhollow2/Hetangyuketang/blob/main/util.py#L29-L35)
 
 运行：
 --
@@ -22,6 +23,7 @@ class yuketang:
         self.dd=False # 设置为True时启用钉钉推送，须在send.py设置Appkey、Appsecret、RobotCode、OpenConversationId
         self.fs=False # 设置为True时启用飞书推送，须在send.py设置AppId、AppSecret、OpenId
         self.an=False # 设置为True时自动答题
+        self.ppt=False # 设置为True时自动下载PPT
         self.si=False # 设置为True时实时推送PPT进度
         ...
 ```
@@ -32,7 +34,7 @@ class yuketang:
  - 支持多线程，每30秒扫描新课堂，随后自动签到、下载课件（pdf）、打印题目及答案、查看当前PPT进度<br>
  - 白/黑名单添加课程名称，可在[雨课堂首页](https://pro.yuketang.cn/v2/web/index)课程标签里查找，具体如[图](https://raw.githubusercontent.com/thuhollow2/Hetangyuketang/main/classroomName.png)中蓝框所示
  - 签到方式为通过“正在上课”提示进入课堂<br>
- - 自动答题支持选择题（单选和多选）和填空题；若选择题未查到答案，将以第一个选项提交（自定义可修改[此处](https://github.com/thuhollow2/Hetangyuketang/blob/main/yuketang.py#L310-L311)），主观题未测试（可能报错）<br>
+ - 自动答题支持选择题（单选和多选）和填空题；若选择题未查到答案，将以第一个选项提交（自定义可修改[此处](https://github.com/thuhollow2/Hetangyuketang/blob/main/yuketang.py#L318-L319)），主观题未测试（可能报错）<br>
  - 启用企业微信推送需[注册企业](https://work.weixin.qq.com/wework_admin/register_wx?from=myhome)、[创建应用](https://work.weixin.qq.com/wework_admin/frame#apps/createApiApp)、[**配置企业可信IP**](https://work.weixin.qq.com/wework_admin/frame#apps)<br>
  - 启用钉钉推送需[注册钉钉开发者账号](https://open-dev.dingtalk.com/)、[创建并发布企业内部应用（应用内创建机器人）](https://open-dev.dingtalk.com/fe/app#/corp/app)、[获取群会话OpenConversationId](https://open.dingtalk.com/document/isvapp/get-the-openconversationid-of-the-group-session)、机器人添加进群
  - 启用飞书推送需[注册飞书开发者账号、创建并发布企业内部应用](https://open.feishu.cn/app?lang=zh-CN)、[开启机器人能力](https://open.feishu.cn/document/faq/trouble-shooting/how-to-enable-bot-ability)、[获取OpenId](https://open.feishu.cn/document/server-docs/im-v1/message/create)、开通权限（[*以应用的身份发消息*](https://open.feishu.cn/document/server-docs/im-v1/message/create)，[*获取与上传图片或文件资源*](https://open.feishu.cn/document/server-docs/im-v1/file/create)）
