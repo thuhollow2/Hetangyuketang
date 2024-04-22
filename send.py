@@ -191,19 +191,29 @@ def split_pdf(filepath, max_size):
     return filepaths
 
 def msg_part(message, max_length):
-    lines = str(message).split('\n')
+    lines = [line for line in str(message).split('\n') if line.strip() != '']
     parts = []
-    part = lines[0]
-    part_length = len(part)
-    for line in lines[1:]:
-        new_length = part_length + 1 + len(line)
-        if new_length <= max_length:
-            part += '\n' + line
-            part_length = new_length
+    part = ''
+    for line in lines:
+        if len(line) < max_length:
+            if part:
+                new_length = len(part) + 1 + len(line)
+            else:
+                new_length = len(line)
+            if new_length <= max_length:
+                if part:
+                    part += '\n' + line
+                else:
+                    part = line
+            else:
+                parts.append(part)
+                part = line
         else:
-            parts.append(part)
-            part = line
-            part_length = len(line)
+            if part:
+                parts.append(part)
+                part = ''
+            for i in range(0, len(line), max_length):
+                parts.append(line[i:i+max_length])
     parts.append(part)
     return parts
 
