@@ -101,9 +101,7 @@ def check_time(target_time_str, minutes):
     target_time = tz.localize(datetime.strptime(target_time_str, "%Y年%m月%d日%H时%M分%S秒"))
     target_time_minus = target_time - timedelta(minutes=minutes)
     current_time = datetime.now(tz)
-    if current_time >= target_time_minus:
-        return False
-    return True
+    return current_time < target_time_minus
 
 def check_time2(time):
     given_time = datetime.strptime(time, "%H:%M").time()
