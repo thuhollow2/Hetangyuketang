@@ -24,7 +24,7 @@ class yuketang:
         self.lessonIdDict = {}
         self.classroomWhiteList = [] # 课程白名单，名字采用完全匹配，为空时不启用
         self.clashroomBlackList = ['2023秋-机器学习-0', '2023清华实践'] # 课程黑名单，名字采用完全匹配，为空时不启用
-        self.clashroomStartTimeDict = {'2023秋-机器学习-0': '08:00', '2023清华实践': '13:30'} # 课程签到开始时间，名字采用完全匹配，时间早于该值不签到，为空时不启用
+        self.clashroomStartTimeDict = {'2023秋-机器学习-0': {'1': '08:00', '2': '13:30'}, '2023清华实践': {'1': '13:30'}} # 课程签到开始时间，名字采用完全匹配，1-7代表周一-周日，当日时间值不为空且此时早于该值不签到，为空时不启用
         self.wx=False # 设置为True时启用企业微信推送，须在send.py设置CompanyId、AgentId、Secret
         self.dd=False # 设置为True时启用钉钉推送，须在send.py设置Appkey、Appsecret、RobotCode、OpenConversationId
         self.fs=False # 设置为True时启用飞书推送，须在send.py设置AppId、AppSecret、OpenId
