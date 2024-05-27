@@ -105,6 +105,11 @@ def check_time(target_time_str, minutes):
         return False
     return True
 
+def check_time2(time):
+    given_time = datetime.strptime(time, "%H:%M").time()
+    current_time = datetime.now(tz).time()
+    return current_time >= given_time
+
 def format_json_to_text(json_data, list_data):
     index_data = []
     text_result = "问题列表:\n"
