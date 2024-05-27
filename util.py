@@ -103,7 +103,11 @@ def check_time(target_time_str, minutes):
     current_time = datetime.now(tz)
     return current_time < target_time_minus
 
-def check_time2(time):
+def check_time2(time_dict, tz):
+    today = str(datetime.now(tz).weekday() + 1)
+    if today not in time_dict:
+        return True
+    time = time_dict[today]
     given_time = datetime.strptime(time, "%H:%M").time()
     current_time = datetime.now(tz).time()
     return current_time >= given_time
