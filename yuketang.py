@@ -24,6 +24,7 @@ class yuketang:
         self.lessonIdDict = {}
         self.classroomWhiteList = [] # 课程白名单，名字采用完全匹配，为空时不启用
         self.clashroomBlackList = ['2023秋-机器学习-0', '2023清华实践'] # 课程黑名单，名字采用完全匹配，为空时不启用
+        self.clashroomStartTimeDict = {'2023秋-机器学习-0': '08:00', '2023清华实践': '13:30'} # 课程签到开始时间，名字采用完全匹配，时间早于该值不签到，为空时不启用
         self.wx=False # 设置为True时启用企业微信推送，须在send.py设置CompanyId、AgentId、Secret
         self.dd=False # 设置为True时启用钉钉推送，须在send.py设置Appkey、Appsecret、RobotCode、OpenConversationId
         self.fs=False # 设置为True时启用飞书推送，须在send.py设置AppId、AppSecret、OpenId
@@ -173,7 +174,7 @@ class yuketang:
                 self.lessonIdDict = {}
                 return False
             for item in online_data['data']['onLessonClassrooms']:
-                if (self.classroomWhiteList and item['classroomName'] not in self.classroomWhiteList) or item['classroomName'] in self.clashroomBlackList:
+                if (self.classroomWhiteList and item['classroomName'] not in self.classroomWhiteList) or item['classroomName'] in self.clashroomBlackList or (self.clashroomStartTimeDict and item['classroomName'] in self.clashroomStartTimeDict and not check_time2(self.clashroomStartTimeDict[item['classroomName']])):
                     continue
                 lessonId = item['lessonId']
                 if lessonId not in self.lessonIdDict:
