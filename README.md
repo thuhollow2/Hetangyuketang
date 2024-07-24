@@ -1,3 +1,5 @@
+**Android使用请移步[termux分支](https://github.com/thuhollow2/Hetangyuketang/tree/termux)**
+
 安装依赖：
 --
 ```shell
