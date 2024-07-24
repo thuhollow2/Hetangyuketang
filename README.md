@@ -1,41 +1,31 @@
-安装 Termux：
+安装 iSH Shell：
 --
-Termux 是一个面向 Android 的开源终端仿真器和 Linux 环境应用。它通过应用包管理系统提供了一系列 Unix 软件包，可以直接在 Android 设备上运行，详细介绍及安装方法移步[官网](https://termux.dev/cn/index.html)，使用需要一定 Linux 基础
+iSH Shell 是一款运行在 iOS 系统上的 App，可以运行 Linux Shell，底层操作系统基于 Alpine Linux。它提供标准的 Linux 命令行接口，使用 apk 包管理器安装和管理软件包，无需越狱，可从 [App Store](https://apps.apple.com/cn/app/ish-shell/id1436902243) 下载，使用需要一定 Linux 基础
 
-使用 Termux：
+使用 iSH Shell：
 --
 
-启动 Termux ，进入命令行界面，为获取系统文件权限，输入
-```shell
-termux-setup-storage
-```
-为查看当前目录，输入
+启动 iSH，进入命令行界面，输入
 ```shell
 pwd
 ```
-每次启动后当前目录默认为 `/data/data/com.termux/files/home/` ,未获取 root 权限时文件管理器无法访问该目录。如未 root ，之后在此目录下运行程序请提前修改 `yuketang.py` 和 `send.py` 以启用推送（熟悉程序后推荐使用，具体见后续 **运行** 及 **说明** ）查看登录二维码，否则应使用`cp`工具将文件从 `/data/data/com.termux/files/home/` 传输到 `/storage/emulated/0/` （手机内部存储**根目录**，可用文件管理器直接访问）
-
-也可切换当前目录到内部存储，即输入
-```shell
-cd /storage/emulated/0
-```
-此时可直接在文件管理器中查看并修改文件，推荐小白使用
+查看当前目录，每次启动当前目录默认为 `/root` ，管理位置可通过 **文件** > **浏览** > **iSH** > **root 文件夹** 找到，之后在此目录下运行程序可在此处查看登录二维码，或者修改 `yuketang.py` 和 `send.py` 以启用推送（熟悉程序后推荐使用，具体见后续 **运行** 及 **说明** ）
 
 ### 安装项目及依赖：
 ```shell
-pkg update
-pkg upgrade
-pkg install python git
+apk update
+apk upgrade
+apk add python3 py3-pip git
 git clone --branch termux https://github.com/thuhollow2/Hetangyuketang.git # 如需提前修改以启用推送，请自行fork
 pip install -r Hetangyuketang/requirements.txt 
 ```
- - termux 安装 Pillow 易失败，已移除终端**显示登录二维码**功能
+ - 已移除终端**显示登录二维码**功能
 
 
 运行：
 --
 ```shell
-python Hetangyuketang/main.py
+python3 Hetangyuketang/main.py
 ```
 
 ### 部分参数：
