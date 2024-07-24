@@ -4,8 +4,6 @@ import os
 import re
 import shutil
 import qrcode
-from PIL import Image
-from pyzbar.pyzbar import decode
 from datetime import datetime, timedelta
 from pytz import timezone
 from concurrent.futures import ThreadPoolExecutor
@@ -26,13 +24,6 @@ def download_qrcode(url):
     with open("qrcode.jpg","wb") as f:
         f.write(res.content)
     print("登录二维码已保存为qrcode.jpg")
-    barcode_url = ''
-    barcodes = decode(Image.open("qrcode.jpg"))
-    for barcode in barcodes:
-        barcode_url = barcode.data.decode("utf-8")
-    qr = qrcode.QRCode()
-    qr.add_data(barcode_url)
-    qr.print_ascii(invert=True)
 
 def cookie_date(response):
     set_cookie_str = response.headers.get('Set-Cookie', '')
