@@ -5,7 +5,7 @@ Termux 是一个面向 Android 的开源终端仿真器和 Linux 环境应用。
 使用 Termux：
 --
 
-启动 Termux ，进入命令行界面，为获取系统文件权限，输入
+启动 Termux，进入命令行界面，为获取系统文件权限，输入
 ```shell
 termux-setup-storage
 ```
@@ -13,7 +13,7 @@ termux-setup-storage
 ```shell
 pwd
 ```
-每次启动后当前目录默认为 `/data/data/com.termux/files/home/` ,未获取 root 权限时文件管理器无法访问该目录。如未 root ，之后在此目录下运行程序请提前修改 `yuketang.py` 和 `send.py` 以启用推送（熟悉程序后推荐使用，具体见后续 **运行** 及 **说明** ）查看登录二维码，否则应使用`cp`工具将文件从 `/data/data/com.termux/files/home/` 传输到 `/storage/emulated/0/` （手机内部存储**根目录**，可用文件管理器直接访问）
+每次启动当前目录默认为 `/data/data/com.termux/files/home/` ,未获取 root 权限时文件管理器无法访问该目录。如未 root ，之后在此目录下运行程序请提前修改 `yuketang.py` 和 `send.py` 以启用推送（熟悉程序后推荐使用，具体见后续 **运行** 及 **说明** ）查看登录二维码，否则应使用`cp`工具将文件从 `/data/data/com.termux/files/home/` 传输到 `/storage/emulated/0/` （手机内部存储**根目录**，可用文件管理器直接访问）
 
 也可切换当前目录到内部存储，即输入
 ```shell
