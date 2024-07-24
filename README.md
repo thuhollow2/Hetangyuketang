@@ -1,14 +1,41 @@
-安装依赖：
+安装 Termux：
 --
+Termux 是一个面向 Android 的开源终端仿真器和 Linux 环境应用。它通过应用包管理系统提供了一系列 Unix 软件包，可以直接在 Android 设备上运行，详细介绍及安装方法移步[官网](https://termux.dev/cn/index.html)，使用需要一定 Linux 基础
+
+使用 Termux：
+--
+
+启动 Termux ，进入命令行界面，为获取系统文件权限，输入
 ```shell
-pip install -r requirements.txt 
+termux-setup-storage
 ```
- - pyzbar为二维码识别库，部分linux安装不全，需用软件包管理工具安装zbar相关依赖；始终失败请注释[1](util.py#L8)和[2](util.py#L29-L35)
+为查看当前目录，输入
+```shell
+pwd
+```
+每次启动后当前目录默认为 `/data/data/com.termux/files/home/` ,未获取 root 权限时文件管理器无法访问该目录。如未 root ，之后在此目录下运行程序请提前修改 `yuketang.py` 和 `send.py` 以启用推送（熟悉程序后推荐使用，具体见后续 **运行** 及 **说明** ）查看登录二维码，否则应使用`cp`工具将文件从 `/data/data/com.termux/files/home/` 传输到 `/storage/emulated/0/` （手机内部存储**根目录**，可用文件管理器直接访问）
+
+也可切换当前目录到内部存储，即输入
+```shell
+cd /storage/emulated/0
+```
+此时可直接在文件管理器中查看并修改文件，推荐小白使用
+
+### 安装项目及依赖：
+```shell
+pkg update
+pkg upgrade
+pkg install python git
+git clone --branch termux https://github.com/thuhollow2/Hetangyuketang.git # 如需提前修改以启用推送，请自行fork
+pip install -r Hetangyuketang/requirements.txt 
+```
+ - termux 安装 Pillow 易失败，已移除终端**显示登录二维码**功能
+
 
 运行：
 --
 ```shell
-python main.py
+python Hetangyuketang/main.py
 ```
 
 ### 部分参数：
