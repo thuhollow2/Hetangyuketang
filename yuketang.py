@@ -9,12 +9,15 @@ from util import *
 from send import *
 from random import *
 
-timeout=30
-
-domain='pro.yuketang.cn' # 荷塘雨课堂
-
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
+
+with open('config.json', 'r', encoding='utf-8') as f:
+    config = json.load(f)
+
+yt_config = config['yuketang']
+timeout = yt_config['timeout']
+domain = yt_config['domain']
 
 class yuketang:
     def __init__(self) -> None:
@@ -22,15 +25,15 @@ class yuketang:
         self.cookie_time=''
         self.lessonIdNewList=[]
         self.lessonIdDict = {}
-        self.classroomWhiteList = [] # 课程白名单，名字采用完全匹配，为空时不启用
-        self.clashroomBlackList = ['2023秋-机器学习-0', '2023清华实践'] # 课程黑名单，名字采用完全匹配，为空时不启用
-        self.clashroomStartTimeDict = {'2023秋-机器学习-0': {'1': '08:00', '2': '13:30'}, '2023清华实践': {'1': '13:30'}} # 课程签到开始时间，名字采用完全匹配，1-7代表周一-周日，当日时间值不为空且此时早于该值不签到，为空时不启用
-        self.wx=False # 设置为True时启用企业微信推送，须在send.py设置CompanyId、AgentId、Secret
-        self.dd=False # 设置为True时启用钉钉推送，须在send.py设置Appkey、Appsecret、RobotCode、OpenConversationId
-        self.fs=False # 设置为True时启用飞书推送，须在send.py设置AppId、AppSecret、OpenId
-        self.an=False # 设置为True时自动答题
-        self.ppt=False # 设置为True时自动下载PPT
-        self.si=False # 设置为True时实时推送PPT进度
+        self.classroomWhiteList = yt_config['classroomWhiteList']
+        self.clashroomBlackList = yt_config['clashroomBlackList']
+        self.clashroomStartTimeDict = yt_config['clashroomStartTimeDict']
+        self.wx = yt_config['wx']
+        self.dd = yt_config['dd']
+        self.fs = yt_config['fs']
+        self.an = yt_config['an']
+        self.ppt = yt_config['ppt']
+        self.si = yt_config['si']
         self.msgmgr=SendManager(wx=self.wx,dd=self.dd,fs=self.fs)
 
     async def getcookie(self):
