@@ -40,6 +40,11 @@
       "dataLimit": 31457280
     },
     "timeout": 30
+  },
+  "util": {
+    "threads": 20,
+    "timezone": "Asia/Shanghai",
+    "timeout": 30
   }
 }
   
