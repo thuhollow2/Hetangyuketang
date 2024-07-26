@@ -43,7 +43,7 @@ class yuketang:
                 lines = f.readlines()
             self.cookie = lines[0].strip()
             if len(lines) >= 2:
-                self.cookie_time = lines[1].strip()
+                self.cookie_time = convert_date(int(lines[1].strip()))
             else:
                 self.cookie_time = ''
         while True:
@@ -106,7 +106,7 @@ class yuketang:
         date = cookie_date(res)
         if date:
             content = f'{self.cookie}\n{date}'
-            self.cookie_time = date
+            self.cookie_time = convert_date(int(date))
         else:
             content = self.cookie
         with open("cookie","w")as f:
