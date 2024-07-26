@@ -1,6 +1,6 @@
-**Android使用请移步[termux分支](https://github.com/thuhollow2/Hetangyuketang/tree/termux)**
+**Android 使用请移步 [termux 分支](https://github.com/thuhollow2/Hetangyuketang/tree/termux)**
 
-**iOS使用请移步[ish分支](https://github.com/thuhollow2/Hetangyuketang/tree/ish)**
+**iOS 使用请移步 [ish 分支](https://github.com/thuhollow2/Hetangyuketang/tree/ish)**
 
 安装依赖：
 --
