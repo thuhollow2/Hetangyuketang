@@ -68,7 +68,7 @@ def download_image(item, folder):
         with open(file_path, 'wb') as f:
             f.write(response.content)
 
-def download_images_to_folder(slides, folder, threads=20):
+def download_images_to_folder(slides, folder):
     with ThreadPoolExecutor(max_workers=threads) as executor:
         for item in slides:
             executor.submit(download_image, item, folder)
