@@ -1,6 +1,5 @@
 asyncio
 PyPDF2
 pytz
-qrcode
 requests
 websockets
