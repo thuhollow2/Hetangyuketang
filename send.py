@@ -5,8 +5,6 @@ import time
 import io
 from PyPDF2 import PdfReader, PdfWriter
 
-timeout=30
-
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
 
@@ -14,19 +12,27 @@ global WX_ACCESS_TOKEN
 global DD_ACCESS_TOKEN
 global FS_ACCESS_TOKEN
 
-wx_touser = '@all' # 发送给所有人
-wx_agentId = 'XXXX'
-wx_secret = 'XXXX'
-wx_companyId = 'XXXX'
+with open('config.json', 'r', encoding='utf-8') as f:
+    config = json.load(f)
 
-dd_appKey = 'XXXX'
-dd_appSecret = 'XXXX'
-dd_robotCode = 'XXXX'
-dd_openConversationId = 'XXXX'
+timeout = config['send']['timeout']
+wx_config = config['send']['wx']
+dd_config = config['send']['dd']
+fs_config = config['send']['fs']
 
-fs_appId = 'XXXX'
-fs_appSecret = 'XXXX'
-fs_openId = 'XXXX'
+wx_touser = wx_config['touser']
+wx_agentId = wx_config['agentId']
+wx_secret = wx_config['secret']
+wx_companyId = wx_config['companyId']
+
+dd_appKey = dd_config['appKey']
+dd_appSecret = dd_config['appSecret']
+dd_robotCode = dd_config['robotCode']
+dd_openConversationId = dd_config['openConversationId']
+
+fs_appId = fs_config['appId']
+fs_appSecret = fs_config['appSecret']
+fs_openId = fs_config['openId']
 
 def get_wx_token():
     global WX_ACCESS_TOKEN
@@ -99,15 +105,15 @@ class SendManager:
         if self.wx:
             get_wx_token()
             if WX_ACCESS_TOKEN:
-                send_wx_msg(msg_part(msg, 500))
+                send_wx_msg(msg_part(msg, wx_config['msgLimit']))
         if self.dd:
             get_dd_token()
             if DD_ACCESS_TOKEN:
-                send_dd_msg(msg_part(msg, 3000))
+                send_dd_msg(msg_part(msg, dd_config['msgLimit']))
         if self.fs:
             get_fs_token()
             if FS_ACCESS_TOKEN:
-                send_fs_msg(msg_part(msg, 10000))
+                send_fs_msg(msg_part(msg, fs_config['msgLimit']))
     
     def sendImage(self,path):
         if self.wx:
@@ -127,15 +133,15 @@ class SendManager:
         if self.wx:
             get_wx_token()
             if WX_ACCESS_TOKEN:
-                send_wx_file(upload_wx_file(path))
+                send_wx_file(upload_wx_file(path, wx_config['dataLimit']))
         if self.dd:
             get_dd_token()
             if DD_ACCESS_TOKEN:
-                send_dd_file(upload_dd_file(path))
+                send_dd_file(upload_dd_file(path, dd_config['dataLimit']))
         if self.fs:
             get_fs_token()
             if FS_ACCESS_TOKEN:
-                send_fs_file(upload_fs_file(path))
+                send_fs_file(upload_fs_file(path, fs_config['dataLimit']))
 
 def get_pdf_size(pdf_writer):
     temp_io = io.BytesIO()
@@ -217,10 +223,10 @@ def msg_part(message, max_length):
     parts.append(part)
     return parts
 
-def upload_wx_file(filepath):
+def upload_wx_file(filepath, max_data=20971520):
     _, ext = os.path.splitext(filepath)
     if ext.lower() == '.pdf':
-        filepaths = split_pdf(filepath, 20971520) # 20MB
+        filepaths = split_pdf(filepath, max_data)
     else:
         filepaths = [filepath]
     media_ids = []
@@ -299,10 +305,10 @@ def send_wx_file(media_ids):
             return
         time.sleep(1)
 
-def upload_dd_file(filepath):
+def upload_dd_file(filepath, max_data=20971520):
     _, ext = os.path.splitext(filepath)
     if ext.lower() == '.pdf':
-        filepaths = split_pdf(filepath, 20971520) # 20MB
+        filepaths = split_pdf(filepath, max_data)
     else:
         filepaths = [filepath]
     media_ids = {}
@@ -404,11 +410,11 @@ def upload_fs_image(filepath):
         media_ids.append(r.json()['data']['image_key'])
     return media_ids
 
-def upload_fs_file(filepath):
+def upload_fs_file(filepath, max_data=31457280):
     _, ext = os.path.splitext(filepath)
     fileType = ext[1:]
     if ext.lower() == '.pdf':
-        filepaths = split_pdf(filepath, 31457280) # 30MB
+        filepaths = split_pdf(filepath, max_data)
     else:
         filepaths = [filepath]
     media_ids = []
