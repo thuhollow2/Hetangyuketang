@@ -1,0 +1,45 @@
+{
+  "yuketang": {
+    "domain": "pro.yuketang.cn",
+    "classroomWhiteList": [],
+    "clashroomBlackList": ["2023秋-机器学习-0", "2023清华实践"],
+    "clashroomStartTimeDict": {
+      "2023秋-机器学习-0": {"1": "08:00", "2": "13:30"},
+      "2023清华实践": {"1": "13:30"}
+    },
+    "wx": false,
+    "dd": false,
+    "fs": false,
+    "an": false,
+    "ppt": false,
+    "si": false,
+    "timeout": 30
+  },
+  "send": {
+    "wx": {
+      "touser": "@all",
+      "agentId": "####",
+      "secret": "####",
+      "companyId": "####",
+      "msgLimit": 500,
+      "dataLimit": 20971520
+    },
+    "dd": {
+      "appKey": "####",
+      "appSecret": "####",
+      "robotCode": "####",
+      "openConversationId": "####",
+      "msgLimit": 3000,
+      "dataLimit": 20971520
+    },
+    "fs": {
+      "appId": "####",
+      "appSecret": "####",
+      "openId": "####",
+      "msgLimit": 10000,
+      "dataLimit": 31457280
+    },
+    "timeout": 30
+  }
+}
+  
