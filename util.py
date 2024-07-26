@@ -10,12 +10,15 @@ from datetime import datetime, timedelta
 from pytz import timezone
 from concurrent.futures import ThreadPoolExecutor
 
-timeout=30
-
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
 
-tz = timezone('Asia/Shanghai')
+with open('config.json', 'r', encoding='utf-8') as f:
+    config = json.load(f)
+
+timeout = config['util']['timeout']
+threads = config['util']['threads']
+tz = timezone(config['util']['timezone'])
 
 def download_qrcode(url):
     try:
@@ -38,13 +41,9 @@ def cookie_date(response):
     set_cookie_str = response.headers.get('Set-Cookie', '')
     expires_regex = re.compile(r'expires=([^;]+)')
     expires_matches = expires_regex.findall(set_cookie_str)
-    expires_datetimes = [datetime.strptime(date_str, '%a, %d-%b-%Y %H:%M:%S GMT').replace(tzinfo=timezone('UTC')).astimezone(tz) for date_str in expires_matches]
+    expires_datetimes = [int(datetime.strptime(date_str, '%a, %d-%b-%Y %H:%M:%S GMT').replace(tzinfo=timezone('UTC')).timestamp() * 1000) for date_str in expires_matches]
     nearest_expires = min(expires_datetimes, default=None)
-    if nearest_expires:
-        nearest_expires_str = nearest_expires.strftime('%Y年%m月%d日%H时%M分%S秒')
-    else:
-        nearest_expires_str = None
-    return nearest_expires_str
+    return nearest_expires
 
 def clear_folder(folder_path):
     try:
@@ -69,8 +68,8 @@ def download_image(item, folder):
         with open(file_path, 'wb') as f:
             f.write(response.content)
 
-def download_images_to_folder(slides, folder):
-    with ThreadPoolExecutor(max_workers=20) as executor: # 下载线程数
+def download_images_to_folder(slides, folder, threads=20):
+    with ThreadPoolExecutor(max_workers=threads) as executor:
         for item in slides:
             executor.submit(download_image, item, folder)
 
