@@ -86,7 +86,7 @@ python main.py
  - 启用飞书推送需[注册飞书开发者账号、创建并发布企业内部应用](https://open.feishu.cn/app?lang=zh-CN)、[开启机器人能力](https://open.feishu.cn/document/faq/trouble-shooting/how-to-enable-bot-ability)、[获取OpenId](https://open.feishu.cn/document/server-docs/im-v1/message/create)、开通权限（[*以应用的身份发消息*](https://open.feishu.cn/document/server-docs/im-v1/message/create)，[*获取与上传图片或文件资源*](https://open.feishu.cn/document/server-docs/im-v1/file/create)），并设置 `yuketang` 的 `fs` 为 `true`，并在 `send` 中填充 `fs` 的 `appId`、`appSecret`、`openId`<br>
  - 单次推送有大小限制，超过将分块传输，默认设置 `send`：<br>
  
-    | 推送方式 | 消息限制 (`msgLimit`) | 文件限制 (`dataLimit`) |
+    | 推送方式 | 消息限制 (`msgLimit`) | 文件限制 (`dataLimit`) | 
     | -------- | -------- | -------- |
     | 企业微信 (`wx`) | 500字符 (500) | 20MB (20971520) |
     | 钉钉 (`dd`) | 3000字符 (3000) | 20MB (20971520) |
@@ -95,4 +95,4 @@ python main.py
  - `timeout` 为连接超时秒数<br>
 ### 声明
  - 项目尚有许多不足<br>
- - 修改自[timeflykai/lazytool](https://github.com/timeflykai/lazytool/tree/main)<br>
+ - 修改自 [timeflykai/lazytool](https://github.com/timeflykai/lazytool/tree/main)<br>
