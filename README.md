@@ -7,7 +7,7 @@
 ```shell
 pip install -r requirements.txt 
 ```
- - pyzbar为二维码识别库，部分linux安装不全，需用软件包管理工具安装zbar相关依赖；始终失败请注释[1](util.py#L8)和[2](util.py#L29-L35)
+ - pyzbar 为二维码识别库，部分 Linux 安装不全，需用软件包管理工具安装 zbar 相关依赖；始终失败请注释[1](util.py#L6-L8)和[2](util.py#L32-L38)
 
 运行：
 --
@@ -15,22 +15,58 @@ pip install -r requirements.txt
 python main.py
 ```
 
-### 部分参数：
-*yuketang.py*
+### 配置文件：
+*config.json*
 ```shell
-class yuketang:
-    def __init__(self) -> None:
-        ...
-        self.classroomWhiteList = [] # 课程白名单，名字采用完全匹配，为空时不启用
-        self.clashroomBlackList = ['2023秋-机器学习-0', '2023清华实践'] # 课程黑名单，名字采用完全匹配，为空时不启用
-        self.clashroomStartTimeDict = {'2023秋-机器学习-0': {'1': '08:00', '2': '13:30'}, '2023清华实践': {'1': '13:30'}} # 课程签到开始时间，名字采用完全匹配，1-7代表周一-周日，当日时间值不为空且此时早于该值不签到，为空时不启用
-        self.wx=False # 设置为True时启用企业微信推送，须在send.py设置CompanyId、AgentId、Secret
-        self.dd=False # 设置为True时启用钉钉推送，须在send.py设置Appkey、Appsecret、RobotCode、OpenConversationId
-        self.fs=False # 设置为True时启用飞书推送，须在send.py设置AppId、AppSecret、OpenId
-        self.an=False # 设置为True时自动答题
-        self.ppt=False # 设置为True时自动下载PPT
-        self.si=False # 设置为True时实时推送PPT进度
-        ...
+{
+  "yuketang": {
+    "domain": "pro.yuketang.cn",
+    "classroomWhiteList": [],
+    "clashroomBlackList": ["2023秋-机器学习-0", "2023清华实践"],
+    "clashroomStartTimeDict": {
+      "2023秋-机器学习-0": {"1": "08:00", "2": "13:30"},
+      "2023清华实践": {"1": "13:30"}
+    },
+    "wx": false,
+    "dd": false,
+    "fs": false,
+    "an": false,
+    "ppt": false,
+    "si": false,
+    "timeout": 30
+  },
+  "send": {
+    "wx": {
+      "touser": "@all",
+      "agentId": "####",
+      "secret": "####",
+      "companyId": "####",
+      "msgLimit": 500,
+      "dataLimit": 20971520
+    },
+    "dd": {
+      "appKey": "####",
+      "appSecret": "####",
+      "robotCode": "####",
+      "openConversationId": "####",
+      "msgLimit": 3000,
+      "dataLimit": 20971520
+    },
+    "fs": {
+      "appId": "####",
+      "appSecret": "####",
+      "openId": "####",
+      "msgLimit": 10000,
+      "dataLimit": 31457280
+    },
+    "timeout": 30
+  },
+  "util": {
+    "threads": 20,
+    "timezone": "Asia/Shanghai",
+    "timeout": 30
+  }
+}
 ```
 
 说明：
@@ -39,7 +75,7 @@ class yuketang:
  - 支持多线程，每30秒扫描新课堂，随后自动签到、下载课件（pdf）、打印题目及答案、查看当前PPT进度<br>
  - 白/黑名单添加课程名称，可在[雨课堂首页](https://pro.yuketang.cn/v2/web/index)课程标签里查找，具体如[图](classroomName.png)中蓝框所示
  - 签到方式为通过“正在上课”提示进入课堂<br>
- - 自动答题支持选择题（单选和多选）和填空题；若选择题未查到答案，将以第一个选项提交（自定义可修改[此处](yuketang.py#L319-L320)），主观题未测试（可能报错）<br>
+ - 自动答题支持选择题（单选和多选）和填空题；若选择题未查到答案，将以第一个选项提交（自定义可修改[此处](yuketang.py#L322-L323)），主观题未测试（可能报错）<br>
  - 启用企业微信推送需[注册企业](https://work.weixin.qq.com/wework_admin/register_wx?from=myhome)、[创建应用](https://work.weixin.qq.com/wework_admin/frame#apps/createApiApp)、[**配置企业可信IP**](https://work.weixin.qq.com/wework_admin/frame#apps)<br>
  - 启用钉钉推送需[注册钉钉开发者账号](https://open-dev.dingtalk.com/)、[创建并发布企业内部应用（应用内创建机器人）](https://open-dev.dingtalk.com/fe/app#/corp/app)、[获取群会话OpenConversationId](https://open.dingtalk.com/document/isvapp/get-the-openconversationid-of-the-group-session)、机器人添加进群
  - 启用飞书推送需[注册飞书开发者账号、创建并发布企业内部应用](https://open.feishu.cn/app?lang=zh-CN)、[开启机器人能力](https://open.feishu.cn/document/faq/trouble-shooting/how-to-enable-bot-ability)、[获取OpenId](https://open.feishu.cn/document/server-docs/im-v1/message/create)、开通权限（[*以应用的身份发消息*](https://open.feishu.cn/document/server-docs/im-v1/message/create)，[*获取与上传图片或文件资源*](https://open.feishu.cn/document/server-docs/im-v1/file/create)）
