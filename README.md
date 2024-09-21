@@ -21,6 +21,7 @@ python main.py
 {
   "yuketang": {
     "domain": "pro.yuketang.cn",
+    "classroomCodeList": ["JZOJ5C", "G84UAB"],
     "classroomWhiteList": [],
     "clashroomBlackList": ["2023秋-机器学习-0", "2023清华实践"],
     "clashroomStartTimeDict": {
@@ -72,12 +73,13 @@ python main.py
 说明：
 --
  - 首次运行将下载雨课堂登录二维码（可推送到客户端），微信扫码获取 cookie，有效期约两周；有效期少于两天时，每小时初将发送二维码提醒，请及时扫码更新，谨防失效后消息轰炸<br>
- - 支持多线程监听，每 30 秒扫描新课堂，随后自动签到、下载课件（pdf）、打印题目及答案、查看当前 PPT 进度<br>
+ - 支持多线程监听，每 30 秒使用班级邀请码/课堂暗号进入新班级、扫描新课堂，随后自动签到、下载课件（pdf）、打印题目及答案、查看当前 PPT 进度<br>
  - 签到方式为通过“正在上课”提示进入课堂<br>
- - 自动答题支持选择题（单选和多选）和填空题；若选择题未查到答案，将以第一个选项提交（自定义可修改[此处](yuketang.py#L322-L323)），主观题未测试（可能报错）<br>
+ - 自动答题支持选择题（单选和多选）和填空题；若选择题未查到答案，将以第一个选项提交（自定义可修改[此处](yuketang.py#L347-L348)），主观题未测试（可能报错）<br>
 
 ### 配置文件
  - 默认设置雨课堂域名为 `pro.yuketang.cn`<br>
+ - `classroomCodeList` 为班级邀请码/课堂暗号列表，每 30 秒尝试加入班级，加入成功或班级不存在将自动去除，班级满员时可启用此功能待成员退出抢占名额<br>
  - `classroomWhiteList`/`clashroomBlackList`/`clashroomStartTimeDict` 等使用的课程名，可在[雨课堂首页](https://pro.yuketang.cn/v2/web/index)课程标签里查找，具体如[图](classroomName.png)中蓝框所示，采用完全匹配，为空时不启用<br>
  - `clashroomStartTimeDict` 中，1-7 代表周一-周日，当日时间值不为空且此时早于该值不签到，数字或时间为空不启用<br>
  - `yuketang` 中，`an` 设置为 `true` 时自动答题，`ppt` 设置为 `true` 时自动下载 PPT，`si` 设置为 `true` 时实时推送 PPT 进度<br>
