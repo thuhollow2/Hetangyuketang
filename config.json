@@ -1,6 +1,7 @@
 {
   "yuketang": {
     "domain": "pro.yuketang.cn",
+    "classroomCodeList": ["JZOJ5C", "G84UAB"],
     "classroomWhiteList": [],
     "clashroomBlackList": ["2023秋-机器学习-0", "2023清华实践"],
     "clashroomStartTimeDict": {
