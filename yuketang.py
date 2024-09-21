@@ -25,6 +25,7 @@ class yuketang:
         self.cookie_time=''
         self.lessonIdNewList=[]
         self.lessonIdDict = {}
+        self.classroomCodeList = yt_config['classroomCodeList']
         self.classroomWhiteList = yt_config['classroomWhiteList']
         self.clashroomBlackList = yt_config['clashroomBlackList']
         self.clashroomStartTimeDict = yt_config['clashroomStartTimeDict']
@@ -123,6 +124,30 @@ class yuketang:
     def setAuthorization(self,res,lessonId):
         if res.headers.get("Set-Auth") is not None:
             self.lessonIdDict[lessonId]['Authorization']="Bearer "+res.headers.get("Set-Auth")
+
+    def join_classroom(self):
+        url=f"https://{domain}/v/course_meta/join_classroom"
+        headers={
+            "cookie":self.cookie,
+            "x-csrftoken":self.cookie.split("csrftoken=")[1].split(";")[0],
+            "Content-Type":"application/json"
+        }
+        classroomCodeList_del = []
+        for classroomCode in self.classroomCodeList:
+            data={"id":classroomCode}
+            try:
+                res=requests.post(url=url,headers=headers,json=data,timeout=timeout)
+            except Exception as e:
+                return
+            if res.json().get("success", False) == True:
+                self.msgmgr.sendMsg(f"班级邀请码/课堂暗号{classroomCode}使用成功")
+                classroomCodeList_del.append(classroomCode)
+            elif "班级邀请码或课堂暗号不存在" in res.json().get("msg", ""):
+                self.msgmgr.sendMsg(f"班级邀请码/课堂暗号{classroomCode}不存在")
+                classroomCodeList_del.append(classroomCode)
+            # else:
+            #    self.msgmgr.sendMsg(f"班级邀请码/课堂暗号{classroomCode}使用失败")
+        self.classroomCodeList = list(set(self.classroomCodeList) - set(classroomCodeList_del))
 
     def get_basicinfo(self):
         url=f"https://{domain}/api/v3/user/basic-info"
@@ -485,6 +510,7 @@ async def ykt_user():
     ykt = yuketang()
     while True:
         await ykt.getcookie()
+        ykt.join_classroom()
         if ykt.getlesson():
             ykt.lesson_checkin()
             await ykt.lesson_attend()
