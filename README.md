@@ -8,7 +8,7 @@
 ```shell
 pip install -r requirements.txt 
 ```
- - pyzbar 为二维码识别库，部分 Linux 安装不全，需用软件包管理工具安装 zbar 相关依赖；始终失败请注释 [1](util.py#L37-L43) 和 [2](util.py#L11-L12)
+ - `pyzbar` 是对 **ZBar** 的 Python 封装，本身需要系统里有 **libzbar** 动态库；非 Windows 上必须先装 zbar 才能用
 
 ---
 # 运行
