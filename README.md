@@ -1,4 +1,4 @@
-**Android 使用请移步 [termux 分支](../tree/termux)**
+**Android 使用请移步 [termux 分支](../../tree/termux)**
 
 **iOS 使用请移步 [ish 分支](https://github.com/thuhollow2/Hetangyuketang/tree/ish)**
 
