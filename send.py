@@ -67,15 +67,15 @@ class SendManager:
         tasks = []
         with ThreadPoolExecutor(max_workers=threads) as pool:
             for s in [s for s in services if s['enabled']]:
-                match s['type']:
-                    case 'wechat':
-                        tasks.append(pool.submit(self._send_wx_msg, msg, s))
-                    case 'dingtalk':
-                        tasks.append(pool.submit(self._send_dd_msg, msg, s))
-                    case 'feishu':
-                        tasks.append(pool.submit(self._send_fs_msg, msg, s))
-                    case _:
-                        continue
+                tp = s['type']
+                if tp == 'wechat':
+                    tasks.append(pool.submit(self._send_wx_msg, msg, s))
+                elif tp == 'dingtalk':
+                    tasks.append(pool.submit(self._send_dd_msg, msg, s))
+                elif tp == 'feishu':
+                    tasks.append(pool.submit(self._send_fs_msg, msg, s))
+                else:
+                    continue
 
             for future in as_completed(tasks):
                 try:
@@ -87,15 +87,15 @@ class SendManager:
         tasks = []
         with ThreadPoolExecutor(max_workers=threads) as pool:
             for s in [s for s in services if s['enabled']]:
-                match s['type']:
-                    case 'wechat':
-                        tasks.append(pool.submit(self._send_wx_image, path, s))
-                    case 'dingtalk':
-                        tasks.append(pool.submit(self._send_dd_image, path, s))
-                    case 'feishu':
-                        tasks.append(pool.submit(self._send_fs_image, path, s))
-                    case _:
-                        continue
+                tp = s['type']
+                if tp == 'wechat':
+                    tasks.append(pool.submit(self._send_wx_image, path, s))
+                elif tp == 'dingtalk':
+                    tasks.append(pool.submit(self._send_dd_image, path, s))
+                elif tp == 'feishu':
+                    tasks.append(pool.submit(self._send_fs_image, path, s))
+                else:
+                    continue
 
             for future in as_completed(tasks):
                 try:
@@ -107,15 +107,15 @@ class SendManager:
         tasks = []
         with ThreadPoolExecutor(max_workers=threads) as pool:
             for s in [s for s in services if s['enabled']]:
-                match s['type']:
-                    case 'wechat':
-                        tasks.append(pool.submit(self._send_wx_file, path, s))
-                    case 'dingtalk':
-                        tasks.append(pool.submit(self._send_dd_file, path, s))
-                    case 'feishu':
-                        tasks.append(pool.submit(self._send_fs_file, path, s))
-                    case _:
-                        continue
+                tp = s['type']
+                if tp == 'wechat':
+                    tasks.append(pool.submit(self._send_wx_file, path, s))
+                elif tp == 'dingtalk':
+                    tasks.append(pool.submit(self._send_dd_file, path, s))
+                elif tp == 'feishu':
+                    tasks.append(pool.submit(self._send_fs_file, path, s))
+                else:
+                    continue
 
             for future in as_completed(tasks):
                 try:
