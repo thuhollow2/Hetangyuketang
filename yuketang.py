@@ -7,6 +7,7 @@ import time
 import traceback
 from util import *
 from send import *
+from llm import *
 from random import *
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,21 +22,19 @@ domain = yt_config['domain']
 
 class yuketang:
     def __init__(self) -> None:
-        self.cookie=''
-        self.cookie_time=''
-        self.lessonIdNewList=[]
+        self.cookie = ''
+        self.cookie_time = ''
+        self.lessonIdNewList = []
         self.lessonIdDict = {}
         self.classroomCodeList = yt_config['classroomCodeList']
         self.classroomWhiteList = yt_config['classroomWhiteList']
-        self.clashroomBlackList = yt_config['clashroomBlackList']
-        self.clashroomStartTimeDict = yt_config['clashroomStartTimeDict']
-        self.wx = yt_config['wx']
-        self.dd = yt_config['dd']
-        self.fs = yt_config['fs']
+        self.classroomBlackList = yt_config['classroomBlackList']
+        self.classroomStartTimeDict = yt_config['classroomStartTimeDict']
+        self.llm = yt_config['llm']
         self.an = yt_config['an']
         self.ppt = yt_config['ppt']
         self.si = yt_config['si']
-        self.msgmgr=SendManager(wx=self.wx,dd=self.dd,fs=self.fs)
+        self.msgmgr = SendManager()
 
     async def getcookie(self):
         flag = 0
@@ -73,9 +72,7 @@ class yuketang:
                 self.msgmgr.sendMsg(f"cookie已失效, 请重新扫码")
                 await self.ws_controller(self.ws_login, retries=1000, delay=1)
                 read_cookie()
-            elif code == 2:
-                self.msgmgr.sendMsg(f"检测cookie有效性失败")
-            else:
+            elif code == 0:
                 if self.cookie_time and flag == 1 and check_time(self.cookie_time, 2880):
                     self.msgmgr.sendMsg(f"cookie有效至{self.cookie_time}")
                 elif self.cookie_time and flag == 1:
@@ -110,14 +107,14 @@ class yuketang:
             self.cookie_time = convert_date(int(date))
         else:
             content = self.cookie
-        with open("cookie","w")as f:
+        with open("cookie","w") as f:
             f.write(content)
 
     def check_cookie(self):
         info=self.get_basicinfo()
         if not info:
             return 2
-        if info.get("code")==0:
+        if info.get("code") == 0:
             return 0
         return 1
     
@@ -202,7 +199,7 @@ class yuketang:
                 self.lessonIdDict = {}
                 return False
             for item in online_data['data']['onLessonClassrooms']:
-                if (self.classroomWhiteList and item['classroomName'] not in self.classroomWhiteList) or item['classroomName'] in self.clashroomBlackList or (self.clashroomStartTimeDict and item['classroomName'] in self.clashroomStartTimeDict and not check_time2(self.clashroomStartTimeDict[item['classroomName']])):
+                if (self.classroomWhiteList and item['classroomName'] not in self.classroomWhiteList) or item['classroomName'] in self.classroomBlackList or (self.classroomStartTimeDict and item['classroomName'] in self.classroomStartTimeDict and not check_time2(self.classroomStartTimeDict[item['classroomName']])):
                     continue
                 lessonId = item['lessonId']
                 if lessonId not in self.lessonIdDict:
@@ -269,12 +266,14 @@ class yuketang:
         self.setAuthorization(res, lessonId)
         info = res.json()
         slides=info['data']['slides']    #获得幻灯片列表
+        problems = {}
         self.lessonIdDict[lessonId]['problems']={}
         self.lessonIdDict[lessonId]['covers']=[slide['index'] for slide in slides if slide.get('cover') is not None]
         for slide in slides:
             if slide.get("problem") is not None:
                 self.lessonIdDict[lessonId]['problems'][slide['id']]=slide['problem']
                 self.lessonIdDict[lessonId]['problems'][slide['id']]['index']=slide['index']
+                problems[slide['index']] = {"problemType": int(slide['problem']['problemType']), "option_keys": [opt['key'] for opt in slide['problem'].get('options', [])], "num_blanks": len(slide['problem'].get('blanks', []))}
                 if slide['problem']['body'] == '':
                     shapes = slide.get('shapes', [])
                     if shapes:
@@ -285,42 +284,47 @@ class yuketang:
                             self.lessonIdDict[lessonId]['problems'][slide['id']]['body'] = '未知问题'
                     else:
                         self.lessonIdDict[lessonId]['problems'][slide['id']]['body'] = '未知问题'
-                if self.lessonIdDict[lessonId]['problems'][slide['id']]['problemType'] == 5:
-                    if self.lessonIdDict[lessonId]['problems'][slide['id']]['answers'] in [[],None,'null'] and not self.lessonIdDict[lessonId]['problems'][slide['id']]['result'] in [[],None,'null']:
-                        self.lessonIdDict[lessonId]['problems'][slide['id']]['answers'] = self.lessonIdDict[lessonId]['problems'][slide['id']]['result']
-                elif self.lessonIdDict[lessonId]['problems'][slide['id']]['problemType'] == 4:
-                    num_blanks = len(self.lessonIdDict[lessonId]['problems'][slide['id']]['blanks'])
-                    if not check_answers_in_blanks(self.lessonIdDict[lessonId]['problems'][slide['id']]['answers'], num_blanks):
-                        answers = []
-                        for blank in self.lessonIdDict[lessonId]['problems'][slide['id']]['blanks']:
-                            answers.extend(blank['answers'])
-                        if check_answers_in_blanks(answers, num_blanks):
-                            self.lessonIdDict[lessonId]['problems'][slide['id']]['answers'] = answers
-                        elif check_answers_in_blanks(self.lessonIdDict[lessonId]['problems'][slide['id']]['result'], num_blanks):
-                            self.lessonIdDict[lessonId]['problems'][slide['id']]['answers'] = self.lessonIdDict[lessonId]['problems'][slide['id']]['result']             
-                else:
-                    if not check_answers_in_options(self.lessonIdDict[lessonId]['problems'][slide['id']]['answers'], self.lessonIdDict[lessonId]['problems'][slide['id']]['options']) and check_answers_in_options(self.lessonIdDict[lessonId]['problems'][slide['id']]['result'], self.lessonIdDict[lessonId]['problems'][slide['id']]['options']):
-                        self.lessonIdDict[lessonId]['problems'][slide['id']]['answers'] = self.lessonIdDict[lessonId]['problems'][slide['id']]['result']
-        if self.lessonIdDict[lessonId]['problems']=={}:
-            self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n问题列表: 无")
-        else:
-            self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n{format_json_to_text(self.lessonIdDict[lessonId]['problems'], self.lessonIdDict[lessonId].get('unlockedproblem', []))}")
+                problems[slide['index']]['body'] = self.lessonIdDict[lessonId]['problems'][slide['id']]['body'] if self.lessonIdDict[lessonId]['problems'][slide['id']]['body'] != '未知问题' else ''
+
+        self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n{format_json_to_text(self.lessonIdDict[lessonId]['problems'], self.lessonIdDict[lessonId].get('unlockedproblem', []))}")
         folder_path=lessonId
         async def fetch_presentation_background():
             loop = asyncio.get_event_loop()
+            problems_keys = [int(k) for k in problems.keys()]
             await loop.run_in_executor(None, clear_folder, folder_path)
             await loop.run_in_executor(None, download_images_to_folder, slides, folder_path)
+            await loop.run_in_executor(None, concat_vertical_cv, folder_path, 0, 100)
+            await loop.run_in_executor(None, concat_vertical_cv, folder_path, 1, 100)
+            await loop.run_in_executor(None, concat_vertical_cv, folder_path, 2, 100)
+            await loop.run_in_executor(None, concat_vertical_cv, folder_path, 3, 100, problems_keys)
             output_pdf_path=os.path.join(folder_path, f"{self.lessonIdDict[lessonId]['classroomName']}-{self.lessonIdDict[lessonId]['title']}.pdf")
             await loop.run_in_executor(None, images_to_pdf, folder_path, output_pdf_path)
-            if os.path.exists(output_pdf_path):
-                try:
-                    self.msgmgr.sendFile(output_pdf_path)
-                except Exception as e:
-                    self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: PPT推送失败")
-            else:
-                self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 没有PPT")
-        if self.ppt:
-            asyncio.create_task(fetch_presentation_background())
+            if self.ppt:
+                if os.path.exists(output_pdf_path):
+                    try:
+                        self.msgmgr.sendFile(output_pdf_path)
+                    except Exception as e:
+                        self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: PPT推送失败")
+                else:
+                    self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 没有PPT")
+
+            if self.llm:
+                reply = await loop.run_in_executor(None, LLMManager().generateAnswer, folder_path, problems)
+                reply_text = "LLM答案列表:\n"
+                for key in problems_keys:
+                    reply_text += "-"*20 + "\n"
+                    reply_text += f"PPT: 第{key}页\n"
+                    if reply['best_answer'].get(str(key)):
+                        self.lessonIdDict[lessonId]['problems'][str(key)]['llm_answer'] = reply['best_answer'][str(key)]
+                        reply_text += f"最佳答案: {reply['best_answer'][str(key)]}\n所有答案:\n"
+                        for r in reply["result"]:
+                            if r["answer_dict"].get(str(key)):
+                                reply_text += f"[{r['score']}, {r['usedTime']}] {r['name']}: {r['answer_dict'][str(key)]}\n"
+                    else:
+                        reply_text += f"无答案\n"
+                self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: {reply_text}")
+
+        asyncio.create_task(fetch_presentation_background())
 
     def answer(self,lessonId):
         url=f"https://{domain}/api/v3/lesson/problem/answer"
@@ -331,33 +335,35 @@ class yuketang:
             "Content-Type":"application/json",
             "Authorization":self.lessonIdDict[lessonId]['Authorization']
         }
-        if self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['problemType']==5:
-            if self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers'] in [[],None,'null']:
-                self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers']=[]
-        elif self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['problemType']==4:
-            num_blanks = len(self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['blanks'])
-            num_answers = len(self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers'])
-            if not check_answers_in_blanks(self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers'], num_blanks):
-                if num_answers < num_blanks:
-                    for _ in range(num_blanks - num_answers):
-                        self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers'].append('')
-                elif num_answers > num_blanks:
-                    self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers'] = self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers'][:num_blanks]
+        llm_answer = self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']].get('llm_answer')
+        if llm_answer:
+            answer = llm_answer
         else:
-            if not check_answers_in_options(self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers'], self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options']):
-                self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers']=[self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options'][0]['key']]
+            match self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['problemType']:
+                case 1: # 单选题
+                    answer = [self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options'][0]['key']]
+                case 2: # 多选题
+                    answer = [self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options'][0]['key']]
+                case 3: # 投票题
+                    answer = [self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options'][0]['key']]
+                case 4: # 填空题
+                    answer = [''] * len(self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['blanks'])
+                case 5: # 主观题
+                    answer = ['']
+                case _: # 其他类型题目
+                    answer = ['']
         data={
             "dt":int(time.time()*1000),
             "problemId":self.lessonIdDict[lessonId]['problemId'],
             "problemType":self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['problemType'],
-            "result":self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers']
+            "result":answer
         }
         try:
             res=requests.post(url=url,headers=headers,json=data,timeout=timeout)
         except Exception as e:
             return
         self.setAuthorization(res,lessonId)
-        self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\nPPT: 第{self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['index']}页\n问题: {self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['body']}\n提交答案: {self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answers']}")
+        self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\nPPT: 第{self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['index']}页\n问题: {self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['body']}\n提交答案: {self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answer']}")
 
     async def ws_controller(self, func, *args, retries=3, delay=10):
         attempt = 0
@@ -473,12 +479,12 @@ class yuketang:
                         self.lessonIdDict[lessonId]['unlockedproblem']=server_response['unlockedproblem']
                     self.lessonIdDict[lessonId]['problemId']=server_response['problem']['prob']
                     text_result = f"PPT: 第{self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['index']}页\n问题: {self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']].get('body', '未知问题')}\n"
-                    answers = self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']].get('answers', [])
+                    answer = self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']].get('answer', [])
                     if 'options' in self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]:
                         for option in self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options']:
                             text_result += f"- {option['key']}: {option['value']}\n"
-                    if answers not in [[],None,'null']:
-                        answer_text = ', '.join(answers)
+                    if answer not in [[],None,'null']:
+                        answer_text = ', '.join(answer)
                         text_result += f"答案: {answer_text}\n"
                     else:
                         text_result += "答案: 暂无\n"
