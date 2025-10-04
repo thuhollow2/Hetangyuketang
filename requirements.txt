@@ -3,6 +3,9 @@ PyPDF2
 pytz
 requests
 websockets
+numpy
+opencv-python
+freetype-py
 qrcode
 Pillow
 pyzbar
