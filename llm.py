@@ -232,33 +232,33 @@ class LLMManager:
         tasks = []
         with ThreadPoolExecutor(max_workers=threads) as pool:
             for m in [m for m in models if m['enabled']]:
-                match m['type']:
-                    case 'openai':
-                        tasks.append(pool.submit(self._generate_oa_answer, folder, query, m))
-                    case 'claude':
-                        tasks.append(pool.submit(self._generate_cl_answer, folder, query, m))
-                    case 'grok':
-                        tasks.append(pool.submit(self._generate_gk_answer, folder, query, m))
-                    case 'gemini':
-                        tasks.append(pool.submit(self._generate_gm_answer, folder, query, m))
-                    case 'cloudflare':
-                        tasks.append(pool.submit(self._generate_cf_answer, folder, query, m))
-                    case 'openrouter':
-                        tasks.append(pool.submit(self._generate_ot_answer, folder, query, m))
-                    case 'poixe':
-                        tasks.append(pool.submit(self._generate_px_answer, folder, query, m))
-                    case 'siliconflow':
-                        tasks.append(pool.submit(self._generate_sf_answer, folder, query, m))
-                    case 'infinigence':
-                        tasks.append(pool.submit(self._generate_ig_answer, folder, query, m))
-                    case 'zhipu':
-                        tasks.append(pool.submit(self._generate_zp_answer, folder, query, m))
-                    case 'dmxapi':
-                        tasks.append(pool.submit(self._generate_dm_answer, folder, query, m))
-                    case 'modelscope':
-                        tasks.append(pool.submit(self._generate_ms_answer, folder, query, m))
-                    case _:
-                        continue
+                tp = m['type']
+                if tp == 'openai':
+                    tasks.append(pool.submit(self._generate_oa_answer, folder, query, m))
+                elif tp == 'claude':
+                    tasks.append(pool.submit(self._generate_cl_answer, folder, query, m))
+                elif tp == 'grok':
+                    tasks.append(pool.submit(self._generate_gk_answer, folder, query, m))
+                elif tp == 'gemini':
+                    tasks.append(pool.submit(self._generate_gm_answer, folder, query, m))
+                elif tp == 'cloudflare':
+                    tasks.append(pool.submit(self._generate_cf_answer, folder, query, m))
+                elif tp == 'openrouter':
+                    tasks.append(pool.submit(self._generate_ot_answer, folder, query, m))
+                elif tp == 'poixe':
+                    tasks.append(pool.submit(self._generate_px_answer, folder, query, m))
+                elif tp == 'siliconflow':
+                    tasks.append(pool.submit(self._generate_sf_answer, folder, query, m))
+                elif tp == 'infinigence':
+                    tasks.append(pool.submit(self._generate_ig_answer, folder, query, m))
+                elif tp == 'zhipu':
+                    tasks.append(pool.submit(self._generate_zp_answer, folder, query, m))
+                elif tp == 'dmxapi':
+                    tasks.append(pool.submit(self._generate_dm_answer, folder, query, m))
+                elif tp == 'modelscope':
+                    tasks.append(pool.submit(self._generate_ms_answer, folder, query, m))
+                else:
+                    continue
 
             for future in as_completed(tasks):
                 try:
@@ -284,28 +284,28 @@ class LLMManager:
             page_answers = [r['answer_dict'][page] for r in reply['result'] if page in r['answer_dict']]
             scoreList = [r['score'] for r in reply['result'] if page in r['answer_dict']]
             if not page_answers: continue
-            match problems[page]['problemType']:
-                case 1:
-                    best_answer[page] = best_item(page_answers, scoreList)
-                case 2:
-                    best_answer[page] = best_item(page_answers, scoreList)
-                case 3:
-                    best_answer[page] = best_item(page_answers, scoreList)
-                case 4:
-                    new_list = []
-                    for i in range(len(page_answers[0])):
-                        new_list.append(best_item([[ans[i]] for ans in page_answers], scoreList))
-                    best_answer[page] = new_list
-                case 5:
-                    new_list = []
-                    for i in range(len(page_answers[0])):
-                        new_list.append(best_item([[ans[i]] for ans in page_answers], scoreList))
-                    best_answer[page] = new_list
-                case _:
-                    new_list = []
-                    for i in range(len(page_answers[0])):
-                        new_list.append(best_item([[ans[i]] for ans in page_answers], scoreList))
-                    best_answer[page] = new_list
+            tp = problems[page]['problemType']
+            if tp == 1:
+                best_answer[page] = best_item(page_answers, scoreList)
+            elif tp == 2:
+                best_answer[page] = best_item(page_answers, scoreList)
+            elif tp == 3:
+                best_answer[page] = best_item(page_answers, scoreList)
+            elif tp == 4:
+                new_list = []
+                for i in range(len(page_answers[0])):
+                    new_list.append(best_item([[ans[i]] for ans in page_answers], scoreList))
+                best_answer[page] = new_list
+            elif tp == 5:
+                new_list = []
+                for i in range(len(page_answers[0])):
+                    new_list.append(best_item([[ans[i]] for ans in page_answers], scoreList))
+                best_answer[page] = new_list
+            else:
+                new_list = []
+                for i in range(len(page_answers[0])):
+                    new_list.append(best_item([[ans[i]] for ans in page_answers], scoreList))
+                best_answer[page] = new_list
         reply["result"].sort(key=lambda x: float(x['usedTime'][:-1]))
         reply["best_answer"] = best_answer
         return reply
@@ -338,53 +338,53 @@ def convert_problems_to_query(problems):
     for page, details in problems.items():
         query_part = f"第{page}页是"
         format_part = f"\"{page}\":"
-        match details['problemType']:
-            case 1:
-                query_part += "单选题,"
-                if details.get('body'):
-                    query_part += f"题目是\"{details['body']}\","
-                query_part += "你应该从"
-                if details.get('option_keys'):
-                    query_part += "\"" + ",".join(details['option_keys']) + "\""
-                else:
-                    query_part += "所有选项"
-                query_part += "中选出最符合的一个选项"
-                format_part += f"[\"{details['option_keys'][0]}\"]"
-            case 2:
-                query_part += "多选题,"
-                if details.get('body'):
-                    query_part += f"题目是\"{details['body']}\","
-                query_part += "你应该从"
-                if details.get('option_keys'):
-                    query_part += "\"" + ",".join(details['option_keys']) + "\""
-                else:
-                    query_part += "所有选项"
-                query_part += "中选出最符合的一个或多个选项"
-                format_part += f"[\"{details['option_keys'][0]}\", \"{details['option_keys'][1]}\"]"
-            case 3:
-                query_part += "投票题,"
-                if details.get('body'):
-                    query_part += f"题目是\"{details['body']}\","
-                query_part += "你应该选出最符合的一个选项"
-                format_part += f"[\"{details['option_keys'][0]}\"]"
-            case 4:
-                query_part += "填空题,"
-                if details.get('body'):
-                    query_part += f"题目是\"{details['body']}\","
-                query_part += f"你应该在{details.get('num_blanks', '若干')}个空白处给出共{details.get('num_blanks', '若干')}个答案;"
-                format_part += "[" + ", ".join(["\"答案\"" for _ in range(details.get('num_blanks', 1))]) + "]"
-            case 5:
-                query_part += "主观题,"
-                if details.get('body'):
-                    query_part += f"题目是\"{details['body']}\","
-                query_part += "你应该结合题目给出合适答案"
-                format_part += "[" + ", ".join(["\"合适答案\"" for _ in range(1)]) + "]"
-            case _:
-                query_part += "其他类型题目,"
-                if details.get('body'):
-                    query_part += f"题目是\"{details['body']}\","
-                query_part += "请根据题目内容进行回答"
-                format_part += "[\"合适答案\"]"
+        tp = details['problemType']
+        if tp == 1:
+            query_part += "单选题,"
+            if details.get('body'):
+                query_part += f"题目是\"{details['body']}\","
+            query_part += "你应该从"
+            if details.get('option_keys'):
+                query_part += "\"" + ",".join(details['option_keys']) + "\""
+            else:
+                query_part += "所有选项"
+            query_part += "中选出最符合的一个选项"
+            format_part += f"[\"{details['option_keys'][0]}\"]"
+        elif tp == 2:
+            query_part += "多选题,"
+            if details.get('body'):
+                query_part += f"题目是\"{details['body']}\","
+            query_part += "你应该从"
+            if details.get('option_keys'):
+                query_part += "\"" + ",".join(details['option_keys']) + "\""
+            else:
+                query_part += "所有选项"
+            query_part += "中选出最符合的一个或多个选项"
+            format_part += f"[\"{details['option_keys'][0]}\", \"{details['option_keys'][1]}\"]"
+        elif tp == 3:
+            query_part += "投票题,"
+            if details.get('body'):
+                query_part += f"题目是\"{details['body']}\","
+            query_part += "你应该选出最符合的一个选项"
+            format_part += f"[\"{details['option_keys'][0]}\"]"
+        elif tp == 4:
+            query_part += "填空题,"
+            if details.get('body'):
+                query_part += f"题目是\"{details['body']}\","
+            query_part += f"你应该在{details.get('num_blanks', '若干')}个空白处给出共{details.get('num_blanks', '若干')}个答案;"
+            format_part += "[" + ", ".join(["\"答案\"" for _ in range(details.get('num_blanks', 1))]) + "]"
+        elif tp == 5:
+            query_part += "主观题,"
+            if details.get('body'):
+                query_part += f"题目是\"{details['body']}\","
+            query_part += "你应该结合题目给出合适答案"
+            format_part += "[" + ", ".join(["\"合适答案\"" for _ in range(1)]) + "]"
+        else:
+            query_part += "其他类型题目,"
+            if details.get('body'):
+                query_part += f"题目是\"{details['body']}\","
+            query_part += "请根据题目内容进行回答"
+            format_part += "[\"合适答案\"]"
         query_parts.append(query_part)
         format_parts.append(format_part)
     if not query_parts or not format_parts:
@@ -406,69 +406,69 @@ def convert_answer_to_dict(answer, problems):
         try:
             answer_dict = json.loads(a)
             for page in [p for p in pages if p in answer_dict]:
-                match problems[page]['problemType']:
-                    case 1:
-                        if not isinstance(answer_dict[page], list):
-                            print(f"答案格式错误,第{page}页应为单选题,答案应为含一个选项的列表")
-                            continue
-                        options = [opt for opt in problems[page]['option_keys'] if opt in answer_dict[page]]
-                        if options:
-                            all_answers[page].append([options[0]])
-                    case 2:
-                        if not isinstance(answer_dict[page], list):
-                            print(f"答案格式错误,第{page}页应为多选题,答案应为含一个或多个选项的列表")
-                            continue
-                        options = [opt for opt in problems[page]['option_keys'] if opt in answer_dict[page]]
-                        if options:
-                            all_answers[page].append(options)
-                    case 3:
-                        if not isinstance(answer_dict[page], list):
-                            print(f"答案格式错误,第{page}页应为投票题,答案应为含一个选项的列表")
-                            continue
-                        options = [opt for opt in problems[page]['option_keys'] if opt in answer_dict[page]]
-                        if options:
-                            all_answers[page].append([options[0]])
-                    case 4:
-                        if not isinstance(answer_dict[page], list) or len(answer_dict[page]) != problems[page]["num_blanks"]:
-                            print(f"答案格式错误,第{page}页应为填空题,答案应为含{problems[page].get('num_blanks', 1)}个答案的列表")
-                            continue
-                        all_answers[page].append(answer_dict[page])
-                    case 5:
-                        if not isinstance(answer_dict[page], list) or len(answer_dict[page]) < 1:
-                            print(f"答案格式错误,第{page}页应为主观题,答案应为含一个或多个合适答案的列表")
-                            continue
-                        all_answers[page].append(answer_dict[page])
-                    case _:
-                        if not isinstance(answer_dict[page], list) or len(answer_dict[page]) < 1:
-                            print(f"答案格式错误,第{page}页应为其他类型题目,答案应为含一个或多个合适答案的列表")
-                            continue
-                        all_answers[page].append(answer_dict[page])
+                tp = problems[page]['problemType']
+                if tp == 1:
+                    if not isinstance(answer_dict[page], list):
+                        print(f"答案格式错误,第{page}页应为单选题,答案应为含一个选项的列表")
+                        continue
+                    options = [opt for opt in problems[page]['option_keys'] if opt in answer_dict[page]]
+                    if options:
+                        all_answers[page].append([options[0]])
+                elif tp == 2:
+                    if not isinstance(answer_dict[page], list):
+                        print(f"答案格式错误,第{page}页应为多选题,答案应为含一个或多个选项的列表")
+                        continue
+                    options = [opt for opt in problems[page]['option_keys'] if opt in answer_dict[page]]
+                    if options:
+                        all_answers[page].append(options)
+                elif tp == 3:
+                    if not isinstance(answer_dict[page], list):
+                        print(f"答案格式错误,第{page}页应为投票题,答案应为含一个选项的列表")
+                        continue
+                    options = [opt for opt in problems[page]['option_keys'] if opt in answer_dict[page]]
+                    if options:
+                        all_answers[page].append([options[0]])
+                elif tp == 4:
+                    if not isinstance(answer_dict[page], list) or len(answer_dict[page]) != problems[page]["num_blanks"]:
+                        print(f"答案格式错误,第{page}页应为填空题,答案应为含{problems[page].get('num_blanks', 1)}个答案的列表")
+                        continue
+                    all_answers[page].append(answer_dict[page])
+                elif tp == 5:
+                    if not isinstance(answer_dict[page], list) or len(answer_dict[page]) < 1:
+                        print(f"答案格式错误,第{page}页应为主观题,答案应为含一个或多个合适答案的列表")
+                        continue
+                    all_answers[page].append(answer_dict[page])
+                else:
+                    if not isinstance(answer_dict[page], list) or len(answer_dict[page]) < 1:
+                        print(f"答案格式错误,第{page}页应为其他类型题目,答案应为含一个或多个合适答案的列表")
+                        continue
+                    all_answers[page].append(answer_dict[page])
         except Exception as e:
             print(f"答案格式错误,无法解析: {e}")
     for page in pages:
         if not all_answers.get(page): continue
-        match problems[page]['problemType']:
-            case 1:
-                correction_dict[page] = best_item(all_answers[page])
-            case 2:
-                correction_dict[page] = best_item(all_answers[page])
-            case 3:
-                correction_dict[page] = best_item(all_answers[page])
-            case 4:
-                new_list = []
-                for i in range(len(all_answers[page][0])):
-                    new_list.append(best_item([[ans[i]] for ans in all_answers[page]]))
-                correction_dict[page] = new_list
-            case 5:
-                new_list = []
-                for i in range(len(all_answers[page][0])):
-                    new_list.append(best_item([[ans[i]] for ans in all_answers[page]]))
-                correction_dict[page] = new_list
-            case _:
-                new_list = []
-                for i in range(len(all_answers[page][0])):
-                    new_list.append(best_item([[ans[i]] for ans in all_answers[page]]))
-                correction_dict[page] = new_list
+        tp = problems[page]['problemType']
+        if tp == 1:
+            correction_dict[page] = best_item(all_answers[page])
+        elif tp == 2:
+            correction_dict[page] = best_item(all_answers[page])
+        elif tp == 3:
+            correction_dict[page] = best_item(all_answers[page])
+        elif tp == 4:
+            new_list = []
+            for i in range(len(all_answers[page][0])):
+                new_list.append(best_item([[ans[i]] for ans in all_answers[page]]))
+            correction_dict[page] = new_list
+        elif tp == 5:
+            new_list = []
+            for i in range(len(all_answers[page][0])):
+                new_list.append(best_item([[ans[i]] for ans in all_answers[page]]))
+            correction_dict[page] = new_list
+        else:
+            new_list = []
+            for i in range(len(all_answers[page][0])):
+                new_list.append(best_item([[ans[i]] for ans in all_answers[page]]))
+            correction_dict[page] = new_list
     return correction_dict
 
 def upload_oa_file(folder, config):
