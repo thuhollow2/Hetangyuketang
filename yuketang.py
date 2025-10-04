@@ -1,10 +1,14 @@
+import asyncio
+import websockets
 import json
 import requests
 import os
 import time
-import io
-from PyPDF2 import PdfReader, PdfWriter
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import traceback
+from util import *
+from send import *
+from llm import *
+from random import *
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
@@ -12,524 +16,508 @@ os.chdir(current_dir)
 with open('config.json', 'r', encoding='utf-8') as f:
     config = json.load(f)
 
-timeout = config['send']['timeout']
-threads = config['send']['threads']
-services = config['send']['services']
+yt_config = config['yuketang']
+timeout = yt_config['timeout']
+domain = yt_config['domain']
 
-class SendManager:
-    def _send_wx_msg(self, msg, service):
-        access_token = get_wx_token(service)
-        if access_token:
-            send_wx_msg(msg_part(msg, service['msgLimit']), service, access_token)
+class yuketang:
+    def __init__(self) -> None:
+        self.cookie = ''
+        self.cookie_time = ''
+        self.lessonIdNewList = []
+        self.lessonIdDict = {}
+        self.classroomCodeList = yt_config['classroomCodeList']
+        self.classroomWhiteList = yt_config['classroomWhiteList']
+        self.classroomBlackList = yt_config['classroomBlackList']
+        self.classroomStartTimeDict = yt_config['classroomStartTimeDict']
+        self.llm = yt_config['llm']
+        self.an = yt_config['an']
+        self.ppt = yt_config['ppt']
+        self.si = yt_config['si']
+        self.msgmgr = SendManager()
 
-    def _send_dd_msg(self, msg, service):
-        access_token = get_dd_token(service)
-        if access_token:
-            send_dd_msg(msg_part(msg, service['msgLimit']), service, access_token)
-
-    def _send_fs_msg(self, msg, service):
-        access_token = get_fs_token(service)
-        if access_token:
-            send_fs_msg(msg_part(msg, service['msgLimit']), service, access_token)
-
-    def _send_wx_image(self, path, service):
-        access_token = get_wx_token(service)
-        if access_token:
-            send_wx_image(upload_wx_file(path, access_token), service, access_token)
-
-    def _send_dd_image(self, path, service):
-        access_token = get_dd_token(service)
-        if access_token:
-            send_dd_image(upload_dd_file(path, access_token), service, access_token)
-
-    def _send_fs_image(self, path, service):
-        access_token = get_fs_token(service)
-        if access_token:
-            send_fs_image(upload_fs_image(path, access_token), service, access_token)
-
-    def _send_wx_file(self, path, service):
-        access_token = get_wx_token(service)
-        if access_token:
-            send_wx_file(upload_wx_file(path, access_token, service['dataLimit']), service, access_token)
-
-    def _send_dd_file(self, path, service):
-        access_token = get_dd_token(service)
-        if access_token:
-            send_dd_file(upload_dd_file(path, access_token, service['dataLimit']), service, access_token)
-
-    def _send_fs_file(self, path, service):
-        access_token = get_fs_token(service)
-        if access_token:
-            send_fs_file(upload_fs_file(path, access_token, service['dataLimit']), service, access_token)
-
-    def sendMsg(self, msg):
-        print(msg)
-        tasks = []
-        with ThreadPoolExecutor(max_workers=threads) as pool:
-            for s in [s for s in services if s['enabled']]:
-                tp = s['type']
-                if tp == 'wechat':
-                    tasks.append(pool.submit(self._send_wx_msg, msg, s))
-                elif tp == 'dingtalk':
-                    tasks.append(pool.submit(self._send_dd_msg, msg, s))
-                elif tp == 'feishu':
-                    tasks.append(pool.submit(self._send_fs_msg, msg, s))
-                else:
-                    continue
-
-            for future in as_completed(tasks):
-                try:
-                    future.result()
-                except Exception as e:
-                    print(f"发送失败: {e}")
-
-    def sendImage(self, path):
-        tasks = []
-        with ThreadPoolExecutor(max_workers=threads) as pool:
-            for s in [s for s in services if s['enabled']]:
-                tp = s['type']
-                if tp == 'wechat':
-                    tasks.append(pool.submit(self._send_wx_image, path, s))
-                elif tp == 'dingtalk':
-                    tasks.append(pool.submit(self._send_dd_image, path, s))
-                elif tp == 'feishu':
-                    tasks.append(pool.submit(self._send_fs_image, path, s))
-                else:
-                    continue
-
-            for future in as_completed(tasks):
-                try:
-                    future.result()
-                except Exception as e:
-                    print(f"发送失败: {e}")
-
-    def sendFile(self, path):
-        tasks = []
-        with ThreadPoolExecutor(max_workers=threads) as pool:
-            for s in [s for s in services if s['enabled']]:
-                tp = s['type']
-                if tp == 'wechat':
-                    tasks.append(pool.submit(self._send_wx_file, path, s))
-                elif tp == 'dingtalk':
-                    tasks.append(pool.submit(self._send_dd_file, path, s))
-                elif tp == 'feishu':
-                    tasks.append(pool.submit(self._send_fs_file, path, s))
-                else:
-                    continue
-
-            for future in as_completed(tasks):
-                try:
-                    future.result()
-                except Exception as e:
-                    print(f"发送失败: {e}")
-
-def get_pdf_size(pdf_writer):
-    temp_io = io.BytesIO()
-    pdf_writer.write(temp_io)
-    return temp_io.getbuffer().nbytes
-
-def split_pdf(filepath, max_size):
-    if os.path.getsize(filepath) < max_size:
-        return [filepath]
-    pdf = PdfReader(filepath)
-    pdf_writer = PdfWriter()
-    filepaths = []
-    output_filename = f'{filepath[:-4]}_'
-    start_page = 0
-    for page in range(len(pdf.pages)):
-        pdf_writer.add_page(pdf.pages[page])
-        if get_pdf_size(pdf_writer) >= max_size:
-            if start_page != page:
-                if start_page == page - 1:
-                    temp_filename = f'{output_filename}{start_page + 1}.pdf'
-                    temp_pdf_writer=PdfWriter()
-                    temp_pdf_writer.add_page(pdf.pages[start_page])
-                else:
-                    temp_filename = f'{output_filename}{start_page + 1}-{page}.pdf'
-                    temp_pdf_writer = PdfWriter()
-                    for i in range(start_page, page):
-                        temp_pdf_writer.add_page(pdf.pages[i])
-                with open(temp_filename, 'wb') as out:
-                    temp_pdf_writer.write(out)
-                filepaths.append(temp_filename)
-                pdf_writer = PdfWriter()
-                pdf_writer.add_page(pdf.pages[page])
-                start_page = page
-                if get_pdf_size(pdf_writer) >= max_size:
-                    pdf_writer = PdfWriter()
-                    start_page = page + 1
+    async def getcookie(self):
+        flag = 0
+        def read_cookie():
+            with open("cookie", "r") as f:
+                lines = f.readlines()
+            self.cookie = lines[0].strip()
+            if len(lines) >= 2:
+                self.cookie_time = convert_date(int(lines[1].strip()))
             else:
-                pdf_writer = PdfWriter()
-                start_page = page + 1
-    if start_page != len(pdf.pages):
-        if start_page == len(pdf.pages) - 1:
-            temp_filename = f'{output_filename}{start_page + 1}.pdf'
-            temp_pdf_writer = PdfWriter()
-            temp_pdf_writer.add_page(pdf.pages[start_page])
+                self.cookie_time = ''
+        while True:
+            if not os.path.exists("cookie"):
+                flag = 1
+                self.msgmgr.sendMsg("正在第一次获取登录cookie, 请微信扫码")
+                await self.ws_controller(self.ws_login, retries=1000, delay=1)
+            if not self.cookie:
+                flag = 1
+                read_cookie()
+            if self.cookie_time and not check_time(self.cookie_time, 0):
+                flag = 1
+                self.msgmgr.sendMsg(f"cookie已失效, 请重新扫码")
+                await self.ws_controller(self.ws_login, retries=1000, delay=1)
+                read_cookie()
+                continue
+            elif self.cookie_time and (not check_time(self.cookie_time, 2880) and datetime.now().minute < 5 or not check_time(self.cookie_time, 120)):
+                flag = 1
+                self.msgmgr.sendMsg(f"cookie有效至{self.cookie_time}, 即将失效, 请重新扫码")
+                await self.ws_controller(self.ws_login, retries=0, delay=1)
+                read_cookie()
+                continue
+            code = self.check_cookie()
+            if code == 1:
+                flag = 1
+                self.msgmgr.sendMsg(f"cookie已失效, 请重新扫码")
+                await self.ws_controller(self.ws_login, retries=1000, delay=1)
+                read_cookie()
+            elif code == 0:
+                if self.cookie_time and flag == 1 and check_time(self.cookie_time, 2880):
+                    self.msgmgr.sendMsg(f"cookie有效至{self.cookie_time}")
+                elif self.cookie_time and flag == 1:
+                    self.msgmgr.sendMsg(f"cookie有效至{self.cookie_time}, 即将失效, 下个小时初注意扫码")
+                elif flag == 1:
+                    self.msgmgr.sendMsg(f"cookie有效, 有效期未知")
+                break
+
+    def weblogin(self,UserID,Auth):
+        url=f"https://{domain}/pc/web_login"
+        data={
+            "UserID":UserID,
+            "Auth":Auth
+        }
+        headers={
+            "referer":f"https://{domain}/web?next=/v2/web/index&type=3",
+            "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+            "Content-Type":"application/json"
+        }
+        try:
+            res=requests.post(url=url,headers=headers,json=data,timeout=timeout)
+        except Exception as e:
+            print(f"登录失败: {e}")
+            return
+        cookies = res.cookies
+        self.cookie=""
+        for k,v in cookies.items():
+            self.cookie += f'{k}={v};'
+        date = cookie_date(res)
+        if date:
+            content = f'{self.cookie}\n{date}'
+            self.cookie_time = convert_date(int(date))
         else:
-            temp_filename = f'{output_filename}{start_page + 1}-{len(pdf.pages)}.pdf'
-            temp_pdf_writer = PdfWriter()
-            for i in range(start_page, len(pdf.pages)):
-                temp_pdf_writer.add_page(pdf.pages[i])
-        with open(temp_filename, 'wb') as out:
-            temp_pdf_writer.write(out)
-        filepaths.append(temp_filename)
-    return filepaths
+            content = self.cookie
+        with open("cookie","w") as f:
+            f.write(content)
 
-def msg_part(message, max_length):
-    lines = [line for line in str(message).split('\n') if line.strip() != '']
-    parts = []
-    part = ''
-    for line in lines:
-        if len(line) < max_length:
-            if part:
-                new_length = len(part) + 1 + len(line)
-            else:
-                new_length = len(line)
-            if new_length <= max_length:
-                if part:
-                    part += '\n' + line
-                else:
-                    part = line
-            else:
-                parts.append(part)
-                part = line
-        else:
-            if part:
-                parts.append(part)
-                part = ''
-            for i in range(0, len(line), max_length):
-                parts.append(line[i:i+max_length])
-    parts.append(part)
-    return parts
+    def check_cookie(self):
+        info=self.get_basicinfo()
+        if not info:
+            return 2
+        if info.get("code") == 0:
+            return 0
+        return 1
+    
+    def setAuthorization(self,res,lessonId):
+        if res.headers.get("Set-Auth") is not None:
+            self.lessonIdDict[lessonId]['Authorization']="Bearer "+res.headers.get("Set-Auth")
 
-def get_wx_token(service):
-    access_token = None
-    if os.path.exists(f'access_token_wx_{service["name"]}.txt'):
-        txt_last_edit_time = os.stat(f'access_token_wx_{service["name"]}.txt').st_mtime
-        now_time = time.time()
-        if now_time - txt_last_edit_time < 7000:
-            with open(f'access_token_wx_{service["name"]}.txt', 'r') as f:
-                access_token = f.read()
-    if not access_token:
-        try:
-            r = requests.post(
-                f'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={service["companyId"]}&corpsecret={service["secret"]}', timeout=timeout)
-            access_token = r.json()["access_token"]
-            with open(f'access_token_wx_{service["name"]}.txt', 'w', encoding='utf-8') as f:
-                f.write(access_token)
-        except Exception as e:
-            print(f"企业微信获取通行密钥时发生错误: {e}")
-    return access_token
-
-def get_dd_token(service):
-    access_token = None
-    if os.path.exists(f'access_token_dd_{service["name"]}.txt'):
-        txt_last_edit_time = os.stat(f'access_token_dd_{service["name"]}.txt').st_mtime
-        now_time = time.time()
-        if now_time - txt_last_edit_time < 7000:
-            with open(f'access_token_dd_{service["name"]}.txt', 'r') as f:
-                access_token = f.read()
-    if not access_token:
-        try:
-            r = requests.post(
-                f'https://api.dingtalk.com/v1.0/oauth2/accessToken', json={"appKey": service["appKey"], "appSecret": service["appSecret"]}, timeout=timeout)
-            access_token = r.json()["accessToken"]
-            with open(f'access_token_dd_{service["name"]}.txt', 'w', encoding='utf-8') as f:
-                f.write(access_token)
-        except Exception as e:
-            print(f"钉钉获取通行密钥时发生错误: {e}")
-    return access_token
-
-def get_fs_token(service):
-    access_token = None
-    if os.path.exists(f'access_token_fs_{service["name"]}.txt'):
-        txt_last_edit_time = os.stat(f'access_token_fs_{service["name"]}.txt').st_mtime
-        now_time = time.time()
-        if now_time - txt_last_edit_time < 1740:
-            with open(f'access_token_fs_{service["name"]}.txt', 'r') as f:
-                access_token = f.read()
-    if not access_token:
-        try:
-            r = requests.post(
-                f'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', json={"app_id": service["appId"], "app_secret": service["appSecret"]}, timeout=timeout)
-            access_token = r.json()["tenant_access_token"]
-            with open(f'access_token_fs_{service["name"]}.txt', 'w', encoding='utf-8') as f:
-                f.write(access_token)
-        except Exception as e:
-            print(f"飞书获取通行密钥时发生错误: {e}")
-    return access_token
-
-def upload_wx_file(filepath, access_token, max_data=20971520):
-    _, ext = os.path.splitext(filepath)
-    if ext.lower() == '.pdf':
-        filepaths = split_pdf(filepath, max_data)
-    else:
-        filepaths = [filepath]
-    media_ids = []
-    for path in filepaths:
-        files={
-            'file': open(path, 'rb')
+    def join_classroom(self):
+        url=f"https://{domain}/v/course_meta/join_classroom"
+        headers={
+            "cookie":self.cookie,
+            "x-csrftoken":self.cookie.split("csrftoken=")[1].split(";")[0],
+            "Content-Type":"application/json"
         }
-        try:
-            r=requests.post(f'https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token={access_token}&type=file', files=files, timeout=timeout)
-            if r.json()['errcode'] == 60020:
-                print('企业微信文件上传失败: 未配置可信IP')
-                return []
-        except Exception as e:
-            print(f"企业微信文件上传发生错误: {e}")
-            return []
-        media_ids.append(r.json()['media_id'])
-    return media_ids
-
-def send_wx_msg(parts, service, access_token):
-    for part in parts:
-        data = {
-            "touser": service['touser'],
-            "msgtype": "text",
-            "agentid": service['agentId'],
-            "text": {"content": f"{part}"}
-        }
-        data = json.dumps(data)
-        try:
-            r = requests.post(
-                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={access_token}', data=data, timeout=timeout)
-            if r.json()['errcode'] == 60020:
-                print('企业微信消息发送失败: 未配置可信IP')
+        classroomCodeList_del = []
+        for classroomCode in self.classroomCodeList:
+            data={"id":classroomCode}
+            try:
+                res=requests.post(url=url,headers=headers,json=data,timeout=timeout)
+            except Exception as e:
                 return
-        except Exception as e:
-            print(f"企业微信消息发送发生错误: {e}")
-            return
-        time.sleep(1)
+            if res.json().get("success", False) == True:
+                self.msgmgr.sendMsg(f"班级邀请码/课堂暗号{classroomCode}使用成功")
+                classroomCodeList_del.append(classroomCode)
+            elif "班级邀请码或课堂暗号不存在" in res.json().get("msg", ""):
+                self.msgmgr.sendMsg(f"班级邀请码/课堂暗号{classroomCode}不存在")
+                classroomCodeList_del.append(classroomCode)
+            # else:
+            #    self.msgmgr.sendMsg(f"班级邀请码/课堂暗号{classroomCode}使用失败")
+        self.classroomCodeList = list(set(self.classroomCodeList) - set(classroomCodeList_del))
 
-def send_wx_image(media_ids, service, access_token):
-    for id in media_ids:
-        data = {
-            "touser": service['touser'],
-            "msgtype": "image",
-            "agentid": service['agentId'],
-            "image":  {'media_id':id}
-        }
-        data = json.dumps(data)
-        try:
-            r = requests.post(
-                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={access_token}', data=data, timeout=timeout)
-            if r.json()['errcode'] == 60020:
-                print('企业微信图片发送失败: 未配置可信IP')
-                return
-        except Exception as e:
-            print(f"企业微信图片发送发生错误: {e}")
-            return
-        time.sleep(1)
-
-def send_wx_file(media_ids, service, access_token):
-    for id in media_ids:
-        data = {
-            "touser": service['touser'],
-            "msgtype": "file",
-            "agentid": service['agentId'],
-            "file":  {'media_id':id}
-        }
-        data = json.dumps(data)
-        try:
-            r = requests.post(
-                f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={access_token}', data=data, timeout=timeout)
-            if r.json()['errcode'] == 60020:
-                print('企业微信文件发送失败: 未配置可信IP')
-                return
-        except Exception as e:
-            print(f"企业微信文件发送发生错误: {e}")
-            return
-        time.sleep(1)
-
-def upload_dd_file(filepath, access_token, max_data=20971520):
-    _, ext = os.path.splitext(filepath)
-    if ext.lower() == '.pdf':
-        filepaths = split_pdf(filepath, max_data)
-    else:
-        filepaths = [filepath]
-    media_ids = {}
-    for path in filepaths:
-        files={
-            'media': open(path, 'rb')
+    def get_basicinfo(self):
+        url=f"https://{domain}/api/v3/user/basic-info"
+        headers={
+            "referer":f"https://{domain}/web?next=/v2/web/index&type=3",
+            "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+            "cookie":self.cookie
         }
         try:
-            r=requests.post(f'https://oapi.dingtalk.com/media/upload?access_token={access_token}&type=file', files=files, timeout=timeout)
+            res=requests.get(url=url,headers=headers,timeout=timeout).json()
+            return res
         except Exception as e:
-            print(f"钉钉文件上传发生错误: {e}")
             return {}
-        media_ids[r.json()['media_id']] = os.path.basename(path)
-    return media_ids
 
-def send_dd_msg(parts, service, access_token):
-    for part in parts:
-        headers = {
-            'x-acs-dingtalk-access-token': access_token,
-            'Content-Type': 'application/json'
+    def lesson_info(self,lessonId):
+        url=f"https://{domain}/api/v3/lesson/basic-info"
+        headers={
+            "referer":f"https://{domain}/lesson/fullscreen/v3/{lessonId}?source=5",
+            "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+            "cookie":self.cookie,
+            "Authorization":self.lessonIdDict[lessonId]['Authorization']
         }
-        data = {
-            "msgParam" : f'{{"content":"{part}"}}',
-            "msgKey" : "sampleText",
-            "robotCode" : service['robotCode'],
-            "openConversationId" : service['openConversationId']
-        }
-        data = json.dumps(data)
         try:
-            r = requests.post(
-                f'https://api.dingtalk.com/v1.0/robot/groupMessages/send', headers=headers, data=data, timeout=timeout)
+            res=requests.get(url=url,headers=headers,timeout=timeout)
         except Exception as e:
-            print(f"钉钉消息发送发生错误: {e}")
             return
-        time.sleep(1)
-
-def send_dd_image(media_ids, service, access_token):
-    for id in media_ids:
-        headers = {
-            'x-acs-dingtalk-access-token': access_token,
-            'Content-Type': 'application/json'
-        }
-        data = {
-            "msgParam" : f'{{"photoURL":"{id}"}}',
-            "msgKey" : "sampleImageMsg",
-            "robotCode" : service['robotCode'],
-            "openConversationId" : service['openConversationId']
-        }
-        data = json.dumps(data)
+        self.setAuthorization(res,lessonId)
+        classroomName = self.lessonIdDict[lessonId]['classroomName']
         try:
-            r = requests.post(
-                f'https://api.dingtalk.com/v1.0/robot/groupMessages/send', headers=headers, data=data, timeout=timeout)
+            self.lessonIdDict[lessonId]['title'] = res.json()['data']['title']
+            self.lessonIdDict[lessonId]['header'] = f"课程: {classroomName}\n标题: {self.lessonIdDict[lessonId]['title']}\n教师: {res.json()['data']['teacher']['name']}\n开始时间: {convert_date(res.json()['data']['startTime'])}"
         except Exception as e:
-            print(f"钉钉图片发送发生错误: {e}")
+            self.lessonIdDict[lessonId]['title'] = '未知标题'
+            self.lessonIdDict[lessonId]['header'] = f"课程: {classroomName}\n标题: 获取失败\n教师: 获取失败\n开始时间: 获取失败"
+
+    def getlesson(self):
+        url=f"https://{domain}/api/v3/classroom/on-lesson-upcoming-exam"
+        headers={
+            "referer":f"https://{domain}/web?next=/v2/web/index&type=3",
+            "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+            "cookie":self.cookie
+        }
+        try:
+            online_data=requests.get(url=url,headers=headers,timeout=timeout).json()
+        except Exception as e:
+            return False
+        try:
+            self.lessonIdNewList = []
+            if online_data['data']['onLessonClassrooms'] == []:
+                for lessonId in self.lessonIdDict:
+                    self.lessonIdDict[lessonId].get('websocket', '').close()
+                self.lessonIdDict = {}
+                return False
+            for item in online_data['data']['onLessonClassrooms']:
+                if (self.classroomWhiteList and item['classroomName'] not in self.classroomWhiteList) or item['classroomName'] in self.classroomBlackList or (self.classroomStartTimeDict and item['classroomName'] in self.classroomStartTimeDict and not check_time2(self.classroomStartTimeDict[item['classroomName']])):
+                    continue
+                lessonId = item['lessonId']
+                if lessonId not in self.lessonIdDict:
+                    self.lessonIdNewList.append(lessonId)
+                    self.lessonIdDict[lessonId] = {}
+                    self.lessonIdDict[lessonId]['start_time'] = time.time()
+                    self.lessonIdDict[lessonId]['classroomName'] = item['classroomName']
+                self.lessonIdDict[lessonId]['active'] = '1'
+            to_delete = [lessonId for lessonId, details in self.lessonIdDict.items() if not details.get('active', '0') == '1']
+            for lessonId in to_delete:
+                del self.lessonIdDict[lessonId]
+                self.lessonIdDict[lessonId].get('websocket', '').close()
+            for lessonId in self.lessonIdDict:
+                self.lessonIdDict[lessonId]['active'] = '0'
+            if self.lessonIdNewList:
+                return True
+            else:
+                return False
+        except Exception as e:
+            return False
+
+    def lesson_checkin(self):
+        for lessonId in self.lessonIdNewList:
+            url=f"https://{domain}/api/v3/lesson/checkin"
+            headers={
+                "referer":f"https://{domain}/lesson/fullscreen/v3/{lessonId}?source=5",
+                "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+                "Content-Type":"application/json; charset=utf-8",
+                "cookie":self.cookie
+            }
+            data={
+                "source":5,
+                "lessonId":lessonId
+            }
+            try:
+                res=requests.post(url=url,headers=headers,json=data,timeout=timeout)
+            except Exception as e:
+                return
+            self.setAuthorization(res,lessonId)
+            self.lesson_info(lessonId)
+            try:
+                self.lessonIdDict[lessonId]['Auth'] = res.json()['data']['lessonToken']
+                self.lessonIdDict[lessonId]['userid'] = res.json()['data']['identityId']
+            except Exception as e:
+                self.lessonIdDict[lessonId]['Auth'] = ''
+                self.lessonIdDict[lessonId]['userid'] = ''
+            checkin_status = res.json()['msg']
+            if checkin_status == 'OK':
+                self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 签到成功")
+            elif checkin_status == 'LESSON_END':
+                self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课程已结束")
+            else:
+                self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 签到失败")
+    
+    async def fetch_presentation(self, lessonId):
+        url = f"https://{domain}/api/v3/lesson/presentation/fetch?presentation_id={self.lessonIdDict[lessonId]['presentation']}"
+        headers = {
+            "referer": f"https://{domain}/lesson/fullscreen/v3/{lessonId}?source=5",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+            "cookie": self.cookie,
+            "Authorization": self.lessonIdDict[lessonId]['Authorization']
+        }
+        res=requests.get(url, headers=headers, timeout=timeout)
+        self.setAuthorization(res, lessonId)
+        info = res.json()
+        slides=info['data']['slides']    #获得幻灯片列表
+        problems = {}
+        self.lessonIdDict[lessonId]['problems']={}
+        self.lessonIdDict[lessonId]['covers']=[slide['index'] for slide in slides if slide.get('cover') is not None]
+        for slide in slides:
+            if slide.get("problem") is not None:
+                self.lessonIdDict[lessonId]['problems'][slide['id']]=slide['problem']
+                self.lessonIdDict[lessonId]['problems'][slide['id']]['index']=slide['index']
+                problems[slide['index']] = {"problemType": int(slide['problem']['problemType']), "option_keys": [opt['key'] for opt in slide['problem'].get('options', [])], "num_blanks": len(slide['problem'].get('blanks', []))}
+                if slide['problem']['body'] == '':
+                    shapes = slide.get('shapes', [])
+                    if shapes:
+                        min_left_item = min(shapes, key=lambda item: item.get('Left', 9999999))
+                        if min_left_item != 9999999 and min_left_item.get('Text') is not None:
+                            self.lessonIdDict[lessonId]['problems'][slide['id']]['body'] = min_left_item['Text']
+                        else:
+                            self.lessonIdDict[lessonId]['problems'][slide['id']]['body'] = '未知问题'
+                    else:
+                        self.lessonIdDict[lessonId]['problems'][slide['id']]['body'] = '未知问题'
+                problems[slide['index']]['body'] = self.lessonIdDict[lessonId]['problems'][slide['id']]['body'] if self.lessonIdDict[lessonId]['problems'][slide['id']]['body'] != '未知问题' else ''
+
+        self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n{format_json_to_text(self.lessonIdDict[lessonId]['problems'], self.lessonIdDict[lessonId].get('unlockedproblem', []))}")
+        folder_path=lessonId
+        async def fetch_presentation_background():
+            loop = asyncio.get_event_loop()
+            problems_keys = [int(k) for k in problems.keys()]
+            await loop.run_in_executor(None, clear_folder, folder_path)
+            await loop.run_in_executor(None, download_images_to_folder, slides, folder_path)
+            await loop.run_in_executor(None, concat_vertical_cv, folder_path, 0, 100)
+            await loop.run_in_executor(None, concat_vertical_cv, folder_path, 1, 100)
+            await loop.run_in_executor(None, concat_vertical_cv, folder_path, 2, 100)
+            await loop.run_in_executor(None, concat_vertical_cv, folder_path, 3, 100, problems_keys)
+            output_pdf_path=os.path.join(folder_path, f"{self.lessonIdDict[lessonId]['classroomName']}-{self.lessonIdDict[lessonId]['title']}.pdf")
+            await loop.run_in_executor(None, images_to_pdf, folder_path, output_pdf_path)
+            if self.ppt:
+                if os.path.exists(output_pdf_path):
+                    try:
+                        self.msgmgr.sendFile(output_pdf_path)
+                    except Exception as e:
+                        self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: PPT推送失败")
+                else:
+                    self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 没有PPT")
+
+            if self.llm:
+                reply = await loop.run_in_executor(None, LLMManager().generateAnswer, folder_path, problems)
+                reply_text = "LLM答案列表:\n"
+                for key in problems_keys:
+                    reply_text += "-"*20 + "\n"
+                    reply_text += f"PPT: 第{key}页\n"
+                    if reply['best_answer'].get(str(key)):
+                        self.lessonIdDict[lessonId]['problems'][str(key)]['llm_answer'] = reply['best_answer'][str(key)]
+                        reply_text += f"最佳答案: {reply['best_answer'][str(key)]}\n所有答案:\n"
+                        for r in reply["result"]:
+                            if r["answer_dict"].get(str(key)):
+                                reply_text += f"[{r['score']}, {r['usedTime']}] {r['name']}: {r['answer_dict'][str(key)]}\n"
+                    else:
+                        reply_text += f"无答案\n"
+                self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: {reply_text}")
+
+        asyncio.create_task(fetch_presentation_background())
+
+    def answer(self,lessonId):
+        url=f"https://{domain}/api/v3/lesson/problem/answer"
+        headers={
+            "referer":f"https://{domain}/lesson/fullscreen/v3/{lessonId}?source=5",
+            "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+            "cookie":self.cookie,
+            "Content-Type":"application/json",
+            "Authorization":self.lessonIdDict[lessonId]['Authorization']
+        }
+        llm_answer = self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']].get('llm_answer')
+        if llm_answer:
+            answer = llm_answer
+        else:
+            tp = self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['problemType']
+            if tp == 1: # 单选题
+                answer = [self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options'][0]['key']]
+            elif tp == 2: # 多选题
+                answer = [self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options'][0]['key']]
+            elif tp == 3: # 投票题
+                answer = [self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options'][0]['key']]
+            elif tp == 4: # 填空题
+                answer = [''] * len(self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['blanks'])
+            elif tp == 5: # 主观题
+                answer = ['']
+            else: # 其他类型题目
+                answer = ['']
+        data={
+            "dt":int(time.time()*1000),
+            "problemId":self.lessonIdDict[lessonId]['problemId'],
+            "problemType":self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['problemType'],
+            "result":answer
+        }
+        try:
+            res=requests.post(url=url,headers=headers,json=data,timeout=timeout)
+        except Exception as e:
             return
-        time.sleep(1)
+        self.setAuthorization(res,lessonId)
+        self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\nPPT: 第{self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['index']}页\n问题: {self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['body']}\n提交答案: {self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answer']}")
 
-def send_dd_file(media_ids, service, access_token):
-    for id in media_ids:
-        _, ext = os.path.splitext(media_ids[id])
-        fileType = ext[1:]
-        headers = {
-            'x-acs-dingtalk-access-token': access_token,
-            'Content-Type': 'application/json'
-        }
-        data = {
-            "msgParam" : f'{{"mediaId":"{id}", "fileName":"{media_ids[id]}", "fileType":"{fileType}"}}',
-            "msgKey" : "sampleFile",
-            "robotCode" : service['robotCode'],
-            "openConversationId" : service['openConversationId']
-        }
-        data = json.dumps(data)
-        try:
-            r = requests.post(
-                f'https://api.dingtalk.com/v1.0/robot/groupMessages/send', headers=headers, data=data, timeout=timeout)
-        except Exception as e:
-            print(f"钉钉文件发送发生错误: {e}")
-            return
-        time.sleep(1)
+    async def ws_controller(self, func, *args, retries=3, delay=10):
+        attempt = 0
+        while attempt <= retries:
+            try:
+                await func(*args)
+                return  # 如果成功就直接返回
+            except Exception as e:
+                print(traceback.format_exc())
+                attempt += 1
+                if attempt <= retries:
+                    await asyncio.sleep(delay)
+                    print(f"出现异常, 尝试重试 ({attempt}/{retries})")
 
-def upload_fs_image(filepath, access_token):
-    filepaths = [filepath]
-    media_ids = []
-    for path in filepaths:
-        headers = {
-            'Authorization': 'Bearer ' + access_token
-        }
-        data = {
-            'image_type': 'message'
-        }
-        files = {
-            'image': open(path, 'rb')
-        }
-        try:
-            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/images', headers=headers, data=data, files=files, timeout=timeout)
-        except Exception as e:
-            print(f"飞书图片上传发生错误: {e}")
-            return []
-        media_ids.append(r.json()['data']['image_key'])
-    return media_ids
+    async def ws_login(self):
+        uri = f"wss://{domain}/wsapp/"
+        async with websockets.connect(uri, ping_timeout=100, ping_interval=5) as websocket:
+            # 发送 "hello" 消息以建立连接
+            hello_message = {
+                "op":"requestlogin",
+                "role":"web",
+                "version":1.4,
+                "type":"qrcode",
+                "from":"web"
+            }
+            await websocket.send(json.dumps(hello_message))
+            server_response = await recv_json(websocket)
+            qrcode_url=server_response['ticket']
+            download_qrcode(qrcode_url)
+            self.msgmgr.sendImage("qrcode.jpg")
+            server_response = await asyncio.wait_for(recv_json(websocket),timeout=60)
+            self.weblogin(server_response['UserID'],server_response['Auth'])
 
-def upload_fs_file(filepath, access_token, max_data):
-    _, ext = os.path.splitext(filepath)
-    fileType = ext[1:]
-    if ext.lower() == '.pdf':
-        filepaths = split_pdf(filepath, max_data)
-    else:
-        filepaths = [filepath]
-    media_ids = []
-    for path in filepaths:
-        headers = {
-            'Authorization': 'Bearer ' + access_token
-        }
-        data = {
-            'file_type': fileType,
-            'file_name': os.path.basename(path)
-        }
-        files = {
-            'file': open(path, 'rb')
-        }
-        try:
-            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/files', headers=headers, data=data, files=files, timeout=timeout)
-        except Exception as e:
-            print(f"飞书文件上传发生错误: {e}")
-            return []
-        media_ids.append(r.json()['data']['file_key'])
-    return media_ids
+    async def ws_lesson(self,lessonId):
+        flag_ppt=1
+        flag_si=1
+        def del_dict():
+            nonlocal flag_ppt, flag_si
+            flag_ppt=1
+            flag_si=1
+            keys_to_remove = ['presentation', 'si', 'unlockedproblem', 'covers']
+            for key in keys_to_remove:
+                if self.lessonIdDict[lessonId].get(key) is not None:
+                    del self.lessonIdDict[lessonId][key]
+        del_dict()
+        uri = f"wss://{domain}/wsapp/"
+        async with websockets.connect(uri, ping_timeout=60, ping_interval=5) as websocket:
+            # 发送 "hello" 消息以建立连接
+            hello_message = {
+                "op": "hello",
+                "userid": self.lessonIdDict[lessonId]['userid'],
+                "role": "student",
+                "auth": self.lessonIdDict[lessonId]['Auth'],
+                "lessonid": lessonId
+            }
+            await websocket.send(json.dumps(hello_message))
+            self.lessonIdDict[lessonId]['websocket'] = websocket
+            while True and time.time()-self.lessonIdDict[lessonId]['start_time']<36000:
+                try:
+                    server_response = await recv_json(websocket)
+                except Exception as e:
+                    self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 连接断开")
+                    break
+                op=server_response['op']
+                if op=="hello" or op=="fetchtimeline":
+                    reversed_timeline = list(reversed(server_response['timeline']))
+                    for item in reversed_timeline:
+                        if 'pres' in item:
+                            if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != item['pres']:
+                                del_dict()
+                                self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课件更新")
+                            self.lessonIdDict[lessonId]['presentation']=item['pres']
+                            self.lessonIdDict[lessonId]['si']=item['si']
+                            break
+                    if server_response.get('presentation'):
+                        if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['presentation']:
+                            del_dict()
+                            self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课件更新")
+                        self.lessonIdDict[lessonId]['presentation']=server_response['presentation']
+                    if server_response.get('slideindex'):
+                        self.lessonIdDict[lessonId]['si']=server_response['slideindex']
+                    if server_response.get('unlockedproblem'):
+                        self.lessonIdDict[lessonId]['unlockedproblem']=server_response['unlockedproblem']
+                elif op=="showpresentation" or op=="presentationupdated" or op=="presentationcreated":
+                    if server_response.get('presentation'):
+                        if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['presentation']:
+                            del_dict()
+                            self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课件更新")
+                        self.lessonIdDict[lessonId]['presentation']=server_response['presentation']
+                    if server_response.get('slideindex'):
+                        self.lessonIdDict[lessonId]['si']=server_response['slideindex']
+                    if server_response.get('unlockedproblem'):
+                        self.lessonIdDict[lessonId]['unlockedproblem']=server_response['unlockedproblem']
+                elif op=="slidenav":
+                    if server_response['slide'].get('pres'):
+                        if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['slide']['pres']:
+                            del_dict()
+                            self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课件更新")
+                        self.lessonIdDict[lessonId]['presentation']=server_response['slide']['pres']
+                    if server_response['slide'].get('si'):
+                        self.lessonIdDict[lessonId]['si']=server_response['slide']['si']
+                    if server_response.get('unlockedproblem'):
+                        self.lessonIdDict[lessonId]['unlockedproblem']=server_response['unlockedproblem']
+                elif op=="unlockproblem":
+                    if server_response['problem'].get('pres'):
+                        if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['problem']['pres']:
+                            del_dict()
+                            self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课件更新")
+                        self.lessonIdDict[lessonId]['presentation']=server_response['problem']['pres']
+                    if server_response['problem'].get('si'):
+                        self.lessonIdDict[lessonId]['si']=server_response['problem']['si']
+                    if server_response.get('unlockedproblem'):
+                        self.lessonIdDict[lessonId]['unlockedproblem']=server_response['unlockedproblem']
+                    self.lessonIdDict[lessonId]['problemId']=server_response['problem']['prob']
+                    text_result = f"PPT: 第{self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['index']}页\n问题: {self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']].get('body', '未知问题')}\n"
+                    answer = self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']].get('answer', [])
+                    if 'options' in self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]:
+                        for option in self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options']:
+                            text_result += f"- {option['key']}: {option['value']}\n"
+                    if answer not in [[],None,'null']:
+                        answer_text = ', '.join(answer)
+                        text_result += f"答案: {answer_text}\n"
+                    else:
+                        text_result += "答案: 暂无\n"
+                    self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n解锁问题:\n{text_result}")
+                    if self.an:
+                        await asyncio.sleep(randint(5,10))
+                        self.answer(lessonId)
+                elif op=="lessonfinished":
+                    self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 下课了")
+                    break
+                if flag_ppt==1 and self.lessonIdDict[lessonId].get('presentation') is not None:
+                    flag_ppt=0
+                    await self.fetch_presentation(lessonId)
+                if flag_si==1 and self.lessonIdDict[lessonId].get('si') is not None and self.lessonIdDict[lessonId].get('covers') is not None and self.lessonIdDict[lessonId]['si'] in self.lessonIdDict[lessonId]['covers']:
+                    self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 正在播放PPT第{self.lessonIdDict[lessonId]['si']}页")
+                    if self.si:
+                        del self.lessonIdDict[lessonId]['si']
+                    else:
+                        flag_si=0
+            self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 连接关闭")
+            del self.lessonIdDict[lessonId]
 
-def send_fs_msg(parts, service, access_token):
-    for part in parts:
-        headers = {
-            'Authorization': 'Bearer ' + access_token
-        }
-        body = {
-            "receive_id": service['openId'],
-            "msg_type": "text",
-            "content": json.dumps({
-                "text": part
-            })
-        }
-        params = {"receive_id_type": "open_id"}
-        try:
-            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/messages', params=params, headers=headers, json=body, timeout=timeout)
-        except Exception as e:
-            print(f"飞书消息发送发生错误: {e}")
-            return
-        time.sleep(1)
+    async def lesson_attend(self):
+        tasks = [asyncio.create_task(self.ws_lesson(lessonId)) for lessonId in self.lessonIdNewList]
+        asyncio.gather(*tasks)
+        self.lessonIdNewList = []
 
-def send_fs_image(media_ids, service, access_token):
-    for id in media_ids:
-        headers = {
-            'Authorization': 'Bearer ' + access_token
-        }
-        body = {
-            "receive_id": service['openId'],
-            "msg_type": "image",
-            "content": json.dumps({
-                "image_key": id
-            })
-        }
-        params = {"receive_id_type": "open_id"}
-        try:
-            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/messages', params=params, headers=headers, json=body, timeout=timeout)
-        except Exception as e:
-            print(f"飞书图片发送发生错误: {e}")
-            return
-        time.sleep(1)
-
-def send_fs_file(media_ids, service, access_token):
-    for id in media_ids:
-        headers = {
-            'Authorization': 'Bearer ' + access_token
-        }
-        body = {
-            "receive_id": service['openId'],
-            "msg_type": "file",
-            "content": json.dumps({
-                "file_key": id
-            })
-        }
-        params = {"receive_id_type": "open_id"}
-        try:
-            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/messages', params=params, headers=headers, json=body, timeout=timeout)
-        except Exception as e:
-            print(f"飞书文件发送发生错误: {e}")
-            return
-        time.sleep(1)
+async def ykt_user():
+    ykt = yuketang()
+    while True:
+        await ykt.getcookie()
+        ykt.join_classroom()
+        if ykt.getlesson():
+            ykt.lesson_checkin()
+            await ykt.lesson_attend()
+        await asyncio.sleep(30)
