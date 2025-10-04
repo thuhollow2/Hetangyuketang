@@ -3,7 +3,6 @@ PyPDF2
 pytz
 requests
 websockets
-numpy
 freetype-py
 qrcode
 Pillow
