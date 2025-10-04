@@ -4,7 +4,6 @@ import os
 import re
 import shutil
 import time
-import cv2
 import freetype
 import math
 import numpy as np
@@ -256,19 +255,19 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
             if stem.isdigit() and int(stem) not in questionList:
                 continue
 
-        im = cv2.imread(p, cv2.IMREAD_UNCHANGED)
+        im = np.array(Image.open(p).convert("RGB"))[..., ::-1]
         if im is None:
             print(f"跳过无法读取: {p}")
             continue
         
         # 统一为BGR三通道
         if im.ndim == 2:
-            im = cv2.cvtColor(im, cv2.COLOR_GRAY2BGR)
+            im = np.repeat(im[:, :, None], 3, axis=2)
         elif im.shape[2] == 4:
-            b, g, r, a = cv2.split(im)
+            b, g, r, a = im[..., 0], im[..., 1], im[..., 2], im[..., 3]
             alpha = (a.astype(np.float32) / 255.0)[..., None]
             bg = np.full_like(im[..., :3], (255, 255, 255), dtype=np.uint8)
-            rgb = cv2.merge([b, g, r]).astype(np.float32)
+            rgb = np.stack([b, g, r], axis=-1).astype(np.float32)
             im = (alpha * rgb + (1.0 - alpha) * bg.astype(np.float32)).astype(np.uint8)
 
         if image_type == 3:
@@ -277,7 +276,7 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
             k = 2
         new_w = max(1, int(im.shape[1] / k))
         new_h = max(1, int(im.shape[0] / k))
-        im = cv2.resize(im, (new_w, new_h), interpolation=cv2.INTER_AREA)
+        im = np.array(Image.fromarray(im[..., ::-1]).resize((new_w, new_h), Image.LANCZOS))[..., ::-1]
         
         if image_type in (1, 2, 3):
             txt = f"第{stem}页"
@@ -287,9 +286,9 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
 
         imgs.append(im)
         if image_type == 0:
-            cv2.imwrite(os.path.join(folder, f"resized_{stem}.jpg"), im)
+            Image.fromarray(im[..., ::-1]).save(os.path.join(folder, f"resized_{stem}.jpg"), "JPEG")
         elif image_type == 1:
-            cv2.imwrite(os.path.join(folder, f"mark_{stem}.jpg"), im)
+            Image.fromarray(im[..., ::-1]).save(os.path.join(folder, f"mark_{stem}.jpg"), "JPEG")
         heights.append(im.shape[0])
         widths.append(im.shape[1])
 
@@ -322,7 +321,7 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
             if idx < len(imgs) - 1:
                 y += gap
 
-        cv2.imwrite(os.path.join(folder, "long.jpg"), out, [int(cv2.IMWRITE_JPEG_QUALITY), quality])
+        Image.fromarray(out[..., ::-1]).save(os.path.join(folder, "long.jpg"), "JPEG", quality=int(quality), optimize=True)
         size_bytes = os.path.getsize(os.path.join(folder, "long.jpg")) / (1024 * 1024)
         if quality < 5:
             print("质量已降至最低，仍无法满足文件大小要求")
@@ -377,5 +376,5 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
             y_im = y + (cell_h - ih) // 2
             canvas[y_im:y_im+ih, x_im:x_im+iw] = im
 
-        cv2.imwrite(os.path.join(folder, "grid.jpg"), canvas, [int(cv2.IMWRITE_JPEG_QUALITY), quality])
+        Image.fromarray(canvas[..., ::-1]).save(os.path.join(folder, "grid.jpg"), "JPEG", quality=int(quality), optimize=True)
         return
