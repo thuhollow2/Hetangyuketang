@@ -6,7 +6,6 @@ import shutil
 import time
 import freetype
 import math
-import numpy as np
 import qrcode
 from pyzbar.pyzbar import decode
 from PIL import Image
@@ -155,27 +154,33 @@ async def recv_json(websocket):
     return info
 
 def draw_cn_text_no_pillow(im, text, vpos, k):
+    if not isinstance(im, Image.Image):
+        raise TypeError("draw_cn_text_no_pillow 现在要求传入 PIL.Image 对象")
+
     face = freetype.Face(os.path.join(current_dir, "msyh.ttc"))
-    w = im.shape[1]
+    w = im.width
     scale_ref = max(0.6, w / 1200.0)
     font_size = int(64 * scale_ref / k)
     face.set_pixel_sizes(0, font_size)
 
     size = face.size
-    ascender = (size.ascender >> 6) if hasattr(size, "ascender") else font_size
+    ascender  = (size.ascender  >> 6) if hasattr(size, "ascender")  else font_size
     descender = (size.descender >> 6) if hasattr(size, "descender") else 0
 
+    # 渲染每个字的灰度位图
     pen_x = 0
     glyphs = []
     for ch in text:
         face.load_char(ch, freetype.FT_LOAD_RENDER | freetype.FT_LOAD_TARGET_NORMAL)
         bmp = face.glyph.bitmap
-        buf = (np.array(bmp.buffer, dtype=np.uint8).reshape(bmp.rows, bmp.width)
-               if bmp.width and bmp.rows else np.zeros((0,0), np.uint8))
+        if bmp.width and bmp.rows:
+            bm_img = Image.frombytes('L', (bmp.width, bmp.rows), bytes(bmp.buffer))
+        else:
+            bm_img = Image.new('L', (0, 0))
         glyphs.append({
-            "bitmap": buf,
-            "top": face.glyph.bitmap_top,
-            "left": face.glyph.bitmap_left,
+            "image":   bm_img,
+            "top":     face.glyph.bitmap_top,
+            "left":    face.glyph.bitmap_left,
             "advance": face.glyph.advance.x >> 6
         })
         pen_x += glyphs[-1]["advance"]
@@ -185,56 +190,43 @@ def draw_cn_text_no_pillow(im, text, vpos, k):
     if text_h <= 0:
         return im
 
-    mask = np.zeros((text_h, text_w), dtype=np.uint8)
+    # 组装整行文字的遮罩
+    mask = Image.new('L', (text_w, text_h), 0)
     pen_x = 0
     for g in glyphs:
-        bm = g["bitmap"]
-        if bm.size == 0:
+        bm = g["image"]
+        if bm.size == (0, 0):
             pen_x += g["advance"]
             continue
         x = pen_x + g["left"]
         y = ascender - g["top"]
-        x_end = x + bm.shape[1]
-        y_end = y + bm.shape[0]
-        if x < 0 or y < 0:
-            pen_x += g["advance"]
-            continue
-        if x_end > mask.shape[1] or y_end > mask.shape[0]:
-            bm = bm[:max(0, mask.shape[0]-y), :max(0, mask.shape[1]-x)]
-            y_end = min(y_end, mask.shape[0])
-            x_end = min(x_end, mask.shape[1])
-        if bm.size > 0:
-            region = mask[y:y_end, x:x_end]
-            region[:] = np.maximum(region, bm[:region.shape[0], :region.shape[1]])
+        if x >= 0 and y >= 0:
+            mask.paste(bm, (x, y))
         pen_x += g["advance"]
 
-    pad = int(8 * scale_ref)
-    bg_pad = int(6 * scale_ref)
-    x1 = pad - bg_pad
+    # 计算放置位置
+    pad   = int(8 * scale_ref)
+    bgpad = int(6 * scale_ref)
+    x1 = max(0, pad - bgpad)
 
     if vpos == 'top':
-        cy = int(im.shape[0] * 0.25)
+        cy = int(im.height * 0.25)
     elif vpos == 'middle':
-        cy = im.shape[0] // 2
-    else:  # bottom
-        cy = int(im.shape[0] * 0.75)
-    y1 = cy - text_h // 2 - bg_pad
+        cy = im.height // 2
+    else:
+        cy = int(im.height * 0.75)
+    y1 = max(0, cy - text_h // 2 - bgpad)
 
-    if y1 < 0:
-        y1 = 0
-    x2 = x1 + text_w + bg_pad * 2
-    y2 = y1 + text_h + bg_pad * 2
-    x2 = min(x2, im.shape[1])
-    y2 = min(y2, im.shape[0])
-    if x1 < 0 or y1 >= im.shape[0]:
-        return im
-
-    text_roi = im[y1+bg_pad:y1+bg_pad+text_h, x1+bg_pad:x1+bg_pad+text_w]
-    if (text_roi.shape[0] == mask.shape[0]) and (text_roi.shape[1] == mask.shape[1]):
-        m = mask.astype(np.float32)/255.0
-        color = np.array([0, 0, 0], dtype=np.float32)  # 黑色 (B,G,R)
-        for c in range(3):
-            text_roi[..., c] = (m * color[c] + (1 - m) * text_roi[..., c]).astype(np.uint8)
+    # 叠加到原图
+    box = (x1 + bgpad, y1 + bgpad, x1 + bgpad + text_w, y1 + bgpad + text_h)
+    # 裁剪以防越界
+    box = (min(box[0], im.width), min(box[1], im.height),
+           min(box[2], im.width), min(box[3], im.height))
+    if box[2] > box[0] and box[3] > box[1]:
+        w_box, h_box = box[2] - box[0], box[3] - box[1]
+        black = Image.new('RGB', (w_box, h_box), (0, 0, 0))
+        mask_crop = mask.crop((0, 0, w_box, h_box))
+        im.paste(black, box, mask_crop)
     return im
 
 def concat_vertical_cv(folder, image_type, quality, questionList=[]):
@@ -246,37 +238,27 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
     if not files:
         print(f'文件夹 {folder} 中没有任何图片文件'); return
 
+    RESAMPLE = getattr(Image, "LANCZOS", getattr(Image, "BICUBIC", 3))
     imgs = []
 
-    widths, heights = [], []
+    widths = []
     for p in files:
         stem = os.path.splitext(os.path.basename(p))[0][4:]
         if image_type == 3:
             if stem.isdigit() and int(stem) not in questionList:
                 continue
 
-        im = np.array(Image.open(p).convert("RGB"))[..., ::-1]
-        if im is None:
-            print(f"跳过无法读取: {p}")
-            continue
-        
-        # 统一为BGR三通道
-        if im.ndim == 2:
-            im = np.repeat(im[:, :, None], 3, axis=2)
-        elif im.shape[2] == 4:
-            b, g, r, a = im[..., 0], im[..., 1], im[..., 2], im[..., 3]
-            alpha = (a.astype(np.float32) / 255.0)[..., None]
-            bg = np.full_like(im[..., :3], (255, 255, 255), dtype=np.uint8)
-            rgb = np.stack([b, g, r], axis=-1).astype(np.float32)
-            im = (alpha * rgb + (1.0 - alpha) * bg.astype(np.float32)).astype(np.uint8)
+        try: im = Image.open(p).convert("RGB")
+        except Exception as e:
+            print(f"跳过无法读取: {p} ({e})"); continue
 
         if image_type == 3:
             k = max(2, math.ceil(math.sqrt(len(questionList))))
         else:
             k = 2
-        new_w = max(1, int(im.shape[1] / k))
-        new_h = max(1, int(im.shape[0] / k))
-        im = np.array(Image.fromarray(im[..., ::-1]).resize((new_w, new_h), Image.LANCZOS))[..., ::-1]
+        new_w = max(1, int(im.width / k))
+        new_h = max(1, int(im.height / k))
+        im = im.resize((new_w, new_h), RESAMPLE)
         
         if image_type in (1, 2, 3):
             txt = f"第{stem}页"
@@ -286,11 +268,10 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
 
         imgs.append(im)
         if image_type == 0:
-            Image.fromarray(im[..., ::-1]).save(os.path.join(folder, f"resized_{stem}.jpg"), "JPEG")
+            im.save(os.path.join(folder, f"resized_{stem}.jpg"), "JPEG")
         elif image_type == 1:
-            Image.fromarray(im[..., ::-1]).save(os.path.join(folder, f"mark_{stem}.jpg"), "JPEG")
-        heights.append(im.shape[0])
-        widths.append(im.shape[1])
+            im.save(os.path.join(folder, f"mark_{stem}.jpg"), "JPEG")
+        widths.append(im.width)
 
     if not imgs:
         print("没有可拼接的图片")
@@ -301,27 +282,26 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
 
         padded = []
         for im in imgs:
-            h, w = im.shape[:2]
-            canvas = np.full((h, max_w, 3), (255,255,255), dtype=np.uint8)
-            x = (max_w - w) // 2
-            canvas[:, x:x+w] = im
+            w, h = im.width, im.height
+            canvas = Image.new("RGB", (max_w, h), (255,255,255))
+            canvas.paste(im, ( (max_w - w)//2, 0 ))
+
             padded.append(canvas)
         imgs = padded
-        heights = [im.shape[0] for im in imgs]
 
         gap = 200
-        total_h = sum(im.shape[0] for im in imgs) + gap * (len(imgs) - 1)
-        out = np.full((total_h, max_w, 3), (255,255,255), dtype=np.uint8)
+        total_h = sum(im.height for im in imgs) + gap * (len(imgs) - 1)
+        out = Image.new("RGB", (max_w, total_h), (255,255,255))
 
         y = 0
         for idx, im in enumerate(imgs):
-            h = im.shape[0]
-            out[y:y+h, :max_w] = im
+            h = im.height
+            out.paste(im, (0, y))
             y += h
             if idx < len(imgs) - 1:
                 y += gap
 
-        Image.fromarray(out[..., ::-1]).save(os.path.join(folder, "long.jpg"), "JPEG", quality=int(quality), optimize=True)
+        out.save(os.path.join(folder, "long.jpg"), "JPEG", quality=int(quality), optimize=True)
         size_bytes = os.path.getsize(os.path.join(folder, "long.jpg")) / (1024 * 1024)
         if quality < 5:
             print("质量已降至最低，仍无法满足文件大小要求")
@@ -338,8 +318,8 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
         cols = math.ceil(n / rows)
 
         # 统一 cell 尺寸
-        cell_w = max(im.shape[1] for im in imgs)
-        cell_h = max(im.shape[0] for im in imgs)
+        cell_w = max(im.width  for im in imgs)
+        cell_h = max(im.height for im in imgs)
         gap = 40
 
         # 计算满列宽度
@@ -352,7 +332,7 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
             used_rows = 1
 
         canvas_h = used_rows * cell_h + (used_rows - 1) * gap
-        canvas = np.full((canvas_h, canvas_w, 3), (255, 255, 255), dtype=np.uint8)
+        canvas = Image.new("RGB", (canvas_w, canvas_h), (255,255,255))
 
         for i, im in enumerate(imgs):
             row = i // cols
@@ -371,10 +351,10 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
             col_in_row = i % cols if row_count == cols else i - full_rows * cols
             x = start_x + col_in_row * (cell_w + gap)
 
-            ih, iw = im.shape[:2]
+            iw, ih = im.width, im.height
             x_im = x + (cell_w - iw) // 2
             y_im = y + (cell_h - ih) // 2
-            canvas[y_im:y_im+ih, x_im:x_im+iw] = im
+            canvas.paste(im, (x_im, y_im))
 
-        Image.fromarray(canvas[..., ::-1]).save(os.path.join(folder, "grid.jpg"), "JPEG", quality=int(quality), optimize=True)
+        canvas.save(os.path.join(folder, "grid.jpg"), "JPEG", quality=int(quality), optimize=True)
         return
