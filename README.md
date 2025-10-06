@@ -1,17 +1,86 @@
-**Android 使用请移步 [termux 分支](../../tree/termux)**
+# 安装
 
-**iOS 使用请移步 [ish 分支](../../tree/ish)**
+<details>
+<summary><code>Android</code></summary>
 
----
-# 安装依赖
+## 安装 Termux
+
+Termux 是一个面向 Android 的开源终端仿真器和 Linux 环境应用。它通过应用包管理系统提供了一系列 Unix 软件包，可以直接在 Android 设备上运行，详细介绍及安装方法移步[官网](https://termux.dev/cn/index.html)，使用需要一定 Linux 基础
+
+## 使用 Termux
+
+启动 Termux，进入命令行界面，为获取系统文件权限，输入
+```shell
+termux-setup-storage
+```
+为查看当前目录，输入
+```shell
+pwd
+```
+每次启动当前目录默认为 `/data/data/com.termux/files/home/`，未获取 root 权限时文件管理器无法访问该目录。如未 root，之后在此目录下运行程序请提前修改 `config.json`（熟悉程序后推荐使用，具体见后续 **运行** 及 **说明** ），否则应使用`cp`工具将文件从 `/data/data/com.termux/files/home/` 传输到 `/storage/emulated/0/`（手机内部存储**根目录**，可用文件管理器直接访问）
+
+也可切换当前目录到内部存储，即输入
+```shell
+cd /storage/emulated/0
+```
+此时可直接在文件管理器中查看并修改文件，推荐小白使用
+
+## 安装项目及依赖
+```shell
+pkg update
+pkg upgrade -y
+pkg install -y python git libjpeg-turbo python-pillow zbar
+git clone https://github.com/thuhollow2/Hetangyuketang.git # 如需提前修改文件，可先自行fork
+cd Hetangyuketang
+pip install -r requirements.txt
+```
+
+</details>
+
+<details>
+<summary><code>iOS</code></summary>
+
+## 安装 iSH Shell
+
+iSH Shell 是一款运行在 iOS 系统上的 App，可以运行 Linux Shell，底层操作系统基于 Alpine Linux。它提供标准的 Linux 命令行接口，使用 apk 包管理器安装和管理软件包，无需越狱，可从 [App Store](https://apps.apple.com/app/ish-shell/id1436902243) 下载，使用需要一定 Linux 基础
+
+## 使用 iSH Shell
+
+启动 iSH，进入命令行界面，输入
+```shell
+pwd
+```
+查看当前目录，每次启动当前目录默认为 `/root` ，可在 **文件** > **浏览** > **iSH** > **root 文件夹** 访问，之后运行程序可在此查看或修改文件
+
+## 安装项目及依赖
+```shell
+apk update
+apk upgrade
+apk add python3 py3-pip git py3-pillow zbar
+ln -sf /usr/bin/python3 /usr/bin/python
+git clone https://github.com/thuhollow2/Hetangyuketang.git # 如需提前修改文件，可先自行fork
+cd Hetangyuketang
+pip install -r requirements.txt
+```
+
+</details>
+
+<details>
+<summary><code>Other</code></summary>
+
+下载本项目后，切换到项目根目录，执行以下命令安装依赖
 
 ```shell
 pip install -r requirements.txt 
 ```
  - `pyzbar` 是对 **ZBar** 的 Python 封装，本身需要系统里有 **libzbar** 动态库；非 Windows 上必须先装 zbar 才能用，详情见 [pyzbar 安装说明](https://github.com/NaturalHistoryMuseum/pyzbar#installation)
 
+</details>
+
 ---
 # 运行
+
+在项目根目录下，执行
 
 ```shell
 python main.py
