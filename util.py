@@ -134,7 +134,8 @@ def format_json_to_text(json_data, list_data):
             index_data.append(problem_info['index'])
         text_result += "-"*20 + "\n"
         body = problem_info.get('body', '未知问题')
-        text_result += f"PPT: 第{problem_info['index']}页\n问题: {body}\n"
+        problemType = {1:"单选题", 2:"多选题", 3:"投票题", 4:"填空题", 5:"主观题"}.get(problem_info['problemType'], "其它题型")
+        text_result += f"PPT: 第{problem_info['index']}页 {problemType}\n问题: {body}\n"
         if 'options' in problem_info:
             for option in problem_info['options']:
                 text_result += f"- {option['key']}: {option['value']}\n"
