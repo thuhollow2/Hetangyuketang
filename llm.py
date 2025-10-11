@@ -5,6 +5,7 @@ import base64
 import math
 import time
 import re
+import ast
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -225,8 +226,10 @@ class LLMManager:
         except:
             pass
 
-    def generateAnswer(self, folder, problems):
+    def generateAnswer(self, folder):
         reply = {"result": [], "best_answer": {}}
+        with open(os.path.join(folder, "problems.txt"), "r", encoding="utf-8") as f:
+            problems = ast.literal_eval(f.read().strip())
         query = convert_problems_to_query(problems)
         if not query: return reply
         tasks = []
@@ -337,12 +340,16 @@ def convert_problems_to_query(problems):
     pages = list(problems.keys())
     for page, details in problems.items():
         query_part = f"第{page}页是"
-        format_part = f"\"{page}\":"
+        format_part = f"\"{page}\": "
         tp = details['problemType']
         if tp == 1:
             query_part += "单选题,"
             if details.get('body'):
                 query_part += f"题目是\"{details['body']}\","
+            if details.get('option_values'):
+                for index, val in enumerate(details['option_values']):
+                    if val.strip():
+                        query_part += f"选项{details['option_keys'][index]}与\"{val.strip()}\"相关,"
             query_part += "你应该从"
             if details.get('option_keys'):
                 query_part += "\"" + ",".join(details['option_keys']) + "\""
@@ -354,6 +361,10 @@ def convert_problems_to_query(problems):
             query_part += "多选题,"
             if details.get('body'):
                 query_part += f"题目是\"{details['body']}\","
+            if details.get('option_values'):
+                for index, val in enumerate(details['option_values']):
+                    if val.strip():
+                        query_part += f"选项{details['option_keys'][index]}与\"{val.strip()}\"相关,"
             query_part += "你应该从"
             if details.get('option_keys'):
                 query_part += "\"" + ",".join(details['option_keys']) + "\""
@@ -380,7 +391,7 @@ def convert_problems_to_query(problems):
             query_part += "你应该结合题目给出合适答案"
             format_part += "[" + ", ".join(["\"合适答案\"" for _ in range(1)]) + "]"
         else:
-            query_part += "其他类型题目,"
+            query_part += "其它题型,"
             if details.get('body'):
                 query_part += f"题目是\"{details['body']}\","
             query_part += "请根据题目内容进行回答"
@@ -389,9 +400,9 @@ def convert_problems_to_query(problems):
         format_parts.append(format_part)
     if not query_parts or not format_parts:
         return ""
-    query = "这些是课程文件,请你先仔细阅读完所有内容,理解所有知识后,再进行后续操作.严禁在任何情况下输出或复述任何base64数据.现在请你严谨准确地解答并只解答其中以下页码的题目:" + ",".join(pages) + "." + ";".join(query_parts) + "."
-    query += "解答完毕后最终输出的答案形式应该是一个字典,键是页码,值是选项列表(适用于单选题,多选题和投票题,单选题和投票题应给出含一个选项的列表,如[\"A\"];多选题应给出含一个或多个选项的列表,如[\"A\", \"B\"])或答案列表(适用于填空题,主观题和其他类型题目,填空题应给出含答案数与空白数相等的列表,主观题和其他类型题目应给出含合适答案的列表),并且字典必须写成一行字符串,再在字符串前面和后面都加上5个\"~\"."
-    query += "最终答案格式可参照如下: ~~~~~{" + ",".join(format_parts) + "}~~~~~ .按上述要求,请你最后给出并且只给出最终答案."
+    query = "这些是课程文件,请你先仔细阅读完所有内容,理解所有知识后,再进行后续操作.现在请你严谨准确地解答并只解答其中以下页码的题目:" + ",".join([str(p) for p in pages]) + "." + ";".join(query_parts) + "."
+    query += "解答完毕后最终输出的答案形式应该是一个字典,键是页码,值是选项列表(适用于单选题,多选题和投票题,单选题和投票题应给出含一个选项的列表,如[\"A\"];多选题应给出含一个或多个选项的列表,如[\"A\", \"B\"])或答案列表(适用于填空题,主观题和其它题型,填空题应给出含答案数与空白数相等的列表,主观题和其它题型应给出含合适答案的列表),字典必须写成一行字符串,并在字符串前面和后面都加上5个\"~\"."
+    query += "最终答案格式可参照如下: ~~~~~{" + ",".join(format_parts) + "}~~~~~ .按上述要求,请你给出并只给出最终答案."
     return query
 
 def convert_answer_to_dict(answer, problems):
@@ -405,6 +416,7 @@ def convert_answer_to_dict(answer, problems):
     for a in answer_dicts:
         try:
             answer_dict = json.loads(a)
+            answer_dict = {int(k): v for k, v in answer_dict.items()}
             for page in [p for p in pages if p in answer_dict]:
                 tp = problems[page]['problemType']
                 if tp == 1:
@@ -440,7 +452,7 @@ def convert_answer_to_dict(answer, problems):
                     all_answers[page].append(answer_dict[page])
                 else:
                     if not isinstance(answer_dict[page], list) or len(answer_dict[page]) < 1:
-                        print(f"答案格式错误,第{page}页应为其他类型题目,答案应为含一个或多个合适答案的列表")
+                        print(f"答案格式错误,第{page}页应为其它题型,答案应为含一个或多个合适答案的列表")
                         continue
                     all_answers[page].append(answer_dict[page])
         except Exception as e:
@@ -1015,24 +1027,20 @@ def generate_ms_answer(query, folder, config):
     return text
 
 if __name__ == "__main__":
-    folder = "1415648550412734208"
-    problems = {"20": {"problemType": 1, "body": "下列叙述错误的是", "option_keys": ["A", "B", "C", "D"], "num_blanks": 0},
-        "32": {"problemType": 1, "body": "图中u和i之间的相位关系是", "option_keys": ["A", "B", "C", "D"], "num_blanks": 0}, 
-        "35": {"problemType": 1, "body": "", "option_keys": ["A", "B", "C", "D"], "num_blanks": 0},
-        "37": {"problemType": 2, "body": "", "option_keys": ["A", "B", "C", "D"], "num_blanks": 0},
-        "49": {"problemType": 1, "body": "", "option_keys": ["A", "B", "C", "D"], "num_blanks": 0},
-        "54": {"problemType": 1, "body": "", "option_keys": ["A", "B", "C", "D"], "num_blanks": 0}
-    }
-    reply = LLMManager().generateAnswer(folder, problems)
+    folder = "1529274209982060032"
+    with open(os.path.join(folder, "problems.txt"), "r", encoding="utf-8") as f:
+        problems = ast.literal_eval(f.read().strip())
+    reply = LLMManager().generateAnswer(folder)
     reply_text = "LLM答案列表:\n"
     for key in problems.keys():
         reply_text += "-"*20 + "\n"
-        reply_text += f"PPT: 第{key}页\n"
-        if reply['best_answer'].get(str(key)):
-            reply_text += f"最佳答案: {reply['best_answer'][str(key)]}\n所有答案:\n"
+        problemType = {1:"单选题", 2:"多选题", 3:"投票题", 4:"填空题", 5:"主观题"}.get(problems[key]['problemType'], "其它题型")
+        reply_text += f"PPT: 第{key}页 {problemType}\n"
+        if reply['best_answer'].get(key):
+            reply_text += f"最佳答案: {reply['best_answer'][key]}\n所有答案:\n"
             for r in reply["result"]:
-                if r["answer_dict"].get(str(key)):
-                    reply_text += f"[{r['score']}, {r['usedTime']}] {r['name']}: {r['answer_dict'][str(key)]}\n"
+                if r["answer_dict"].get(key):
+                    reply_text += f"[{r['score']}, {r['usedTime']}] {r['name']}: {r['answer_dict'][key]}\n"
         else:
             reply_text += f"无答案\n"
     print(reply_text)
