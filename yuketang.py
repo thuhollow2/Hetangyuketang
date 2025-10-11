@@ -273,19 +273,18 @@ class yuketang:
             if slide.get("problem") is not None:
                 self.lessonIdDict[lessonId]['problems'][slide['id']]=slide['problem']
                 self.lessonIdDict[lessonId]['problems'][slide['id']]['index']=slide['index']
-                problems[slide['index']] = {"problemType": int(slide['problem']['problemType']), "option_keys": [opt['key'] for opt in slide['problem'].get('options', [])], "num_blanks": len(slide['problem'].get('blanks', []))}
+                problems[slide['index']] = {"problemType": int(slide['problem']['problemType']), "option_keys": [opt['key'] for opt in slide['problem'].get('options', [])], "option_values": [opt['value'] for opt in slide['problem'].get('options', [])], "num_blanks": len(slide['problem'].get('blanks', []))}
                 if slide['problem']['body'] == '':
                     shapes = slide.get('shapes', [])
                     if shapes:
                         min_left_item = min(shapes, key=lambda item: item.get('Left', 9999999))
                         if min_left_item != 9999999 and min_left_item.get('Text') is not None:
-                            self.lessonIdDict[lessonId]['problems'][slide['id']]['body'] = min_left_item['Text']
+                            self.lessonIdDict[lessonId]['problems'][slide['id']]['body'] = min_left_item['Text'] or '未知问题'
                         else:
                             self.lessonIdDict[lessonId]['problems'][slide['id']]['body'] = '未知问题'
                     else:
                         self.lessonIdDict[lessonId]['problems'][slide['id']]['body'] = '未知问题'
                 problems[slide['index']]['body'] = self.lessonIdDict[lessonId]['problems'][slide['id']]['body'] if self.lessonIdDict[lessonId]['problems'][slide['id']]['body'] != '未知问题' else ''
-
         self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n{format_json_to_text(self.lessonIdDict[lessonId]['problems'], self.lessonIdDict[lessonId].get('unlockedproblem', []))}")
         folder_path=lessonId
         async def fetch_presentation_background():
@@ -299,6 +298,8 @@ class yuketang:
             await loop.run_in_executor(None, concat_vertical_cv, folder_path, 3, 100, problems_keys)
             output_pdf_path=os.path.join(folder_path, f"{self.lessonIdDict[lessonId]['classroomName']}-{self.lessonIdDict[lessonId]['title']}.pdf")
             await loop.run_in_executor(None, images_to_pdf, folder_path, output_pdf_path)
+            with open(os.path.join(folder_path, "problems.txt"), "w", encoding="utf-8") as f:
+                f.write(str(problems))
             if self.ppt:
                 if os.path.exists(output_pdf_path):
                     try:
@@ -309,17 +310,19 @@ class yuketang:
                     self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 没有PPT")
 
             if self.llm:
-                reply = await loop.run_in_executor(None, LLMManager().generateAnswer, folder_path, problems)
+                reply = await loop.run_in_executor(None, LLMManager().generateAnswer, folder_path)
                 reply_text = "LLM答案列表:\n"
                 for key in problems_keys:
                     reply_text += "-"*20 + "\n"
-                    reply_text += f"PPT: 第{key}页\n"
-                    if reply['best_answer'].get(str(key)):
-                        self.lessonIdDict[lessonId]['problems'][str(key)]['llm_answer'] = reply['best_answer'][str(key)]
-                        reply_text += f"最佳答案: {reply['best_answer'][str(key)]}\n所有答案:\n"
+                    problemId = next((pid for pid, prob in self.lessonIdDict[lessonId]['problems'].items() if prob.get('index') == key), None)
+                    problemType = {1:"单选题", 2:"多选题", 3:"投票题", 4:"填空题", 5:"主观题"}.get(self.lessonIdDict[lessonId]['problems'][problemId]['problemType'], "其它题型")
+                    reply_text += f"PPT: 第{key}页 {problemType}\n"
+                    if reply['best_answer'].get(key):
+                        self.lessonIdDict[lessonId]['problems'][problemId]['llm_answer'] = reply['best_answer'][key]
+                        reply_text += f"最佳答案: {reply['best_answer'][key]}\n所有答案:\n"
                         for r in reply["result"]:
-                            if r["answer_dict"].get(str(key)):
-                                reply_text += f"[{r['score']}, {r['usedTime']}] {r['name']}: {r['answer_dict'][str(key)]}\n"
+                            if r["answer_dict"].get(key):
+                                reply_text += f"[{r['score']}, {r['usedTime']}] {r['name']}: {r['answer_dict'][key]}\n"
                     else:
                         reply_text += f"无答案\n"
                 self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: {reply_text}")
@@ -342,16 +345,22 @@ class yuketang:
             tp = self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['problemType']
             if tp == 1: # 单选题
                 answer = [self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options'][0]['key']]
+                problemType = "单选题"
             elif tp == 2: # 多选题
                 answer = [self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options'][0]['key']]
+                problemType = "多选题"
             elif tp == 3: # 投票题
                 answer = [self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options'][0]['key']]
+                problemType = "投票题"
             elif tp == 4: # 填空题
                 answer = [''] * len(self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['blanks'])
+                problemType = "填空题"
             elif tp == 5: # 主观题
                 answer = ['']
-            else: # 其他类型题目
+                problemType = "主观题"
+            else: # 其它题型
                 answer = ['']
+                problemType = "其它题型"
         data={
             "dt":int(time.time()*1000),
             "problemId":self.lessonIdDict[lessonId]['problemId'],
@@ -363,7 +372,7 @@ class yuketang:
         except Exception as e:
             return
         self.setAuthorization(res,lessonId)
-        self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\nPPT: 第{self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['index']}页\n问题: {self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['body']}\n提交答案: {self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['answer']}")
+        self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\nPPT: 第{self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['index']}页 {problemType}\n问题: {self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['body']}\n提交答案: {answer}")
 
     async def ws_controller(self, func, *args, retries=3, delay=10):
         attempt = 0
@@ -478,8 +487,9 @@ class yuketang:
                     if server_response.get('unlockedproblem'):
                         self.lessonIdDict[lessonId]['unlockedproblem']=server_response['unlockedproblem']
                     self.lessonIdDict[lessonId]['problemId']=server_response['problem']['prob']
-                    text_result = f"PPT: 第{self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['index']}页\n问题: {self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']].get('body', '未知问题')}\n"
-                    answer = self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']].get('answer', [])
+                    problemType = {1:"单选题", 2:"多选题", 3:"投票题", 4:"填空题", 5:"主观题"}.get(self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['problemType'], "其它题型")
+                    text_result = f"PPT: 第{self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['index']}页 {problemType}\n问题: {self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['body']}\n"
+                    answer = self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']].get('llm_answer', [])
                     if 'options' in self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]:
                         for option in self.lessonIdDict[lessonId]['problems'][self.lessonIdDict[lessonId]['problemId']]['options']:
                             text_result += f"- {option['key']}: {option['value']}\n"
