@@ -294,9 +294,11 @@ python main.py
 
  - 自动答题支持单选题、多选题、投票题、填空题和主观题；若未获取到答案，将提交默认答案（可修改[此处](yuketang.py#L348-L365)）
 
- - 课程名可在雨课堂首页的课程标签里查找，具体如图中蓝框所示
+ - 课程名可在雨课堂首页的课程标签里查找，具体如图中红框所示
 
- ![](classroomName-1.png) ![](classroomName-2.png)
+ ![](classroomName-1.png)
+ 
+ ![](classroomName-2.png)
 
 ## 配置文件
 
