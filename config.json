@@ -1,186 +1,187 @@
 {
-  "yuketang": {
-    "domain": "pro.yuketang.cn",
-    "classroomCodeList": ["JZOJ5C", "G84UAB"],
-    "classroomWhiteList": [],
-    "classroomBlackList": ["2023秋-机器学习-0", "2023清华实践"],
-    "classroomStartTimeDict": {
-      "2023秋-机器学习-0": {"1": "08:00", "2": "13:30"},
-      "2023清华实践": {"1": "13:30"}
+    "yuketang": {
+        "domain": "pro.yuketang.cn",
+        "classroomCodeList": ["JZOJ5C", "G84UAB"],
+        "classroomWhiteList": [],
+        "classroomBlackList": ["2023秋-机器学习-0", "2023清华实践"],
+        "classroomStartTimeDict": {
+            "2023秋-机器学习-0": {"1": "08:00", "2": "13:30"},
+            "2023清华实践": {"1": "13:30"}
+        },
+        "llm": false,
+        "an": false,
+        "ppt": false,
+        "si": false,
+        "timeout": 30
     },
-    "llm": false,
-    "an": false,
-    "ppt": false,
-    "si": false,
-    "timeout": 30
-  },
-  "send": {
-    "services": [
-      {
-        "name": "wechat",
-        "enabled": false,
-        "type": "wechat",
-        "touser": "@all",
-        "agentId": "####",
-        "secret": "####",
-        "companyId": "####",
-        "msgLimit": 500,
-        "dataLimit": 20971520
-      },
-      {
-        "name": "dingtalk",
-        "enabled": false,
-        "type": "dingtalk",
-        "appKey": "####",
-        "appSecret": "####",
-        "robotCode": "####",
-        "openConversationId": "####",
-        "msgLimit": 3000,
-        "dataLimit": 20971520
-      },
-      {
-        "name": "feishu",
-        "enabled": false,
-        "type": "feishu",
-        "appId": "####",
-        "appSecret": "####",
-        "openId": "####",
-        "msgLimit": 10000,
-        "dataLimit": 31457280
-      }
-    ],
-    "threads": 5,
-    "timeout": 30
-  },
-  "llm": {
-    "models": [
-      {
-        "name": "openai-o4-mini",
-        "enabled": false,
-        "type": "openai",
-        "apiKey": "####",
-        "model": "o4-mini",
-        "prompt": "You are a helpful assistant.",
-        "score": 100
-      },
-      {
-        "name": "claude-3-5",
-        "enabled": false,
-        "type": "claude",
-        "apiKey": "####",
-        "model": "claude-3-5",
-        "prompt": "You are a helpful assistant.",
-        "temperature": 0.2,
-        "score": 100
-      },
-      {
-        "name": "grok-4-0709",
-        "enabled": false,
-        "type": "grok",
-        "apiKey": "####",
-        "model": "grok-4-0709",
-        "prompt": "You are a helpful assistant.",
-        "temperature": 0.2,
-        "score": 100
-      },
-      {
-        "name": "gemini-2.5-flash",
-        "enabled": false,
-        "type": "gemini",
-        "apiKey": "####",
-        "model": "gemini-2.5-flash",
-        "prompt": "You are a helpful assistant.",
-        "temperature": 0.2,
-        "score": 100
-      },
-      {
-        "name": "cloudflare-llama-4-scout-17b",
-        "enabled": false,
-        "type": "cloudflare",
-        "accountId": "####",
-        "apiToken": "####",
-        "model": "@cf/meta/llama-4-scout-17b-16e-instruct",
-        "prompt": "You are a helpful assistant.",
-        "temperature": 0.2,
-        "score": 100
-      },
-      {
-        "name": "openrouter-gpt-oss-20b",
-        "enabled": false,
-        "type": "openrouter",
-        "apiKey": "####",
-        "model": "openai/gpt-oss-20b:free",
-        "prompt": "You are a helpful assistant.",
-        "temperature": 0.2,
-        "score": 100
-      },
-      {
-        "name": "poixe-gemini-2.5-flash",
-        "enabled": false,
-        "type": "poixe",
-        "apiKey": "####",
-        "model": "gemini-2.5-flash:free",
-        "prompt": "You are a helpful assistant.",
-        "temperature": 0.2,
-        "score": 100
-      },
-      {
-        "name": "siliconflow-glm-4.1v-9b-thinking",
-        "enabled": false,
-        "type": "siliconflow",
-        "apiKey": "####",
-        "model": "THUDM/GLM-4.1V-9B-Thinking",
-        "prompt": "You are a helpful assistant.",
-        "temperature": 0.2,
-        "score": 100
-      },
-      {
-        "name": "infinigence-glm-4.5v",
-        "enabled": false,
-        "type": "infinigence",
-        "apiKey": "####",
-        "model": "glm-4.5v",
-        "prompt": "You are a helpful assistant.",
-        "temperature": 0.2,
-        "score": 100
-      },
-      {
-        "name": "zhipu-glm-4.1v-thinking-flash",
-        "enabled": false,
-        "type": "zhipu",
-        "apiKey": "####",
-        "model": "GLM-4.1V-Thinking-Flash",
-        "prompt": "You are a helpful assistant.",
-        "temperature": 0.2,
-        "score": 100
-      },
-      {
-        "name": "dmxapi-glm-4.1v-9b-thinking",
-        "enabled": false,
-        "type": "dmxapi",
-        "apiKey": "####",
-        "model": "GLM-4.1V-9B-Thinking",
-        "prompt": "You are a helpful assistant.",
-        "temperature": 0.2,
-        "score": 100
-      },
-      {
-        "name": "modelscope-intern-s1",
-        "enabled": false,
-        "type": "modelscope",
-        "accessToken": "####",
-        "model": "Shanghai_AI_Laboratory/Intern-S1",
-        "prompt": "You are a helpful assistant.",
-        "temperature": 0.2,
-        "score": 100
-      }
-    ],
-    "threads": 5,
-    "timeout": 300
-  },
-  "util": {
-    "timezone": "Asia/Shanghai",
-    "threads": 20,
-    "timeout": 30
-  }
+    "send": {
+        "services": [
+            {
+                "name": "wechat",
+                "enabled": false,
+                "type": "wechat",
+                "touser": "@all",
+                "agentId": "####",
+                "secret": "####",
+                "companyId": "####",
+                "msgLimit": 500,
+                "dataLimit": 20971520
+            },
+            {
+                "name": "dingtalk",
+                "enabled": false,
+                "type": "dingtalk",
+                "appKey": "####",
+                "appSecret": "####",
+                "robotCode": "####",
+                "openConversationId": "####",
+                "msgLimit": 3000,
+                "dataLimit": 20971520
+            },
+            {
+                "name": "feishu",
+                "enabled": false,
+                "type": "feishu",
+                "appId": "####",
+                "appSecret": "####",
+                "openId": "####",
+                "msgLimit": 10000,
+                "dataLimit": 31457280
+            }
+        ],
+        "threads": 5,
+        "timeout": 30
+    },
+    "llm": {
+        "models": [
+            {
+                "name": "openai-o4-mini",
+                "enabled": false,
+                "type": "openai",
+                "apiKey": "####",
+                "model": "o4-mini",
+                "prompt": "You are a helpful assistant.",
+                "score": 100
+            },
+            {
+                "name": "claude-3-5",
+                "enabled": false,
+                "type": "claude",
+                "apiKey": "####",
+                "model": "claude-3-5",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "grok-4-0709",
+                "enabled": false,
+                "type": "grok",
+                "apiKey": "####",
+                "model": "grok-4-0709",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "gemini-2.5-flash",
+                "enabled": false,
+                "type": "gemini",
+                "apiKey": "####",
+                "model": "gemini-2.5-flash",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "cloudflare-llama-4-scout-17b",
+                "enabled": false,
+                "type": "cloudflare",
+                "accountId": "####",
+                "apiToken": "####",
+                "model": "@cf/meta/llama-4-scout-17b-16e-instruct",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "openrouter-gpt-oss-20b",
+                "enabled": false,
+                "type": "openrouter",
+                "apiKey": "####",
+                "model": "openai/gpt-oss-20b:free",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "poixe-gemini-2.5-flash",
+                "enabled": false,
+                "type": "poixe",
+                "apiKey": "####",
+                "model": "gemini-2.5-flash:free",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "siliconflow-glm-4.1v-9b-thinking",
+                "enabled": false,
+                "type": "siliconflow",
+                "apiKey": "####",
+                "model": "THUDM/GLM-4.1V-9B-Thinking",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "infinigence-glm-4.5v",
+                "enabled": false,
+                "type": "infinigence",
+                "apiKey": "####",
+                "model": "glm-4.5v",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "zhipu-glm-4.1v-thinking-flash",
+                "enabled": false,
+                "type": "zhipu",
+                "apiKey": "####",
+                "model": "GLM-4.1V-Thinking-Flash",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "dmxapi-glm-4.1v-9b-thinking",
+                "enabled": false,
+                "type": "dmxapi",
+                "apiKey": "####",
+                "model": "GLM-4.1V-9B-Thinking",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "modelscope-intern-s1",
+                "enabled": false,
+                "type": "modelscope",
+                "accessToken": "####",
+                "model": "Shanghai_AI_Laboratory/Intern-S1",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            }
+        ],
+        "threads": 5,
+        "timeout": 300
+    },
+    "util": {
+        "timezone": "Asia/Shanghai",
+        "threads": 20,
+        "timeout": 30
+    }
 }
+
