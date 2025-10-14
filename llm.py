@@ -1019,7 +1019,7 @@ def generate_ms_answer(query, folder, config):
     return text
 
 if __name__ == "__main__":
-    folder = "1531440735946350720"
+    folder = "1529274209982060032"
     with open(os.path.join(folder, "problems.txt"), "r", encoding="utf-8") as f:
         problems = ast.literal_eval(f.read().strip())
     reply = LLMManager().generateAnswer(folder)
@@ -1036,3 +1036,4 @@ if __name__ == "__main__":
         else:
             reply_text += f"无答案\n"
     print(reply_text)
+
