@@ -231,98 +231,140 @@ def draw_cn_text_no_pillow(im, text, vpos, k):
     return im
 
 def concat_vertical_cv(folder, image_type, quality, questionList=[]):
+    # 收集并排序文件（raw_数字.jpg）
     files = [f for f in os.listdir(folder)
-                   if f.lower().endswith('.jpg') and f.lower().startswith('raw_') and os.path.splitext(f)[0][4:].isdigit()]
+             if f.lower().endswith('.jpg') and f.lower().startswith('raw_') and os.path.splitext(f)[0][4:].isdigit()]
     files.sort(key=lambda x: int(os.path.splitext(x)[0][4:]))
     files = [os.path.join(folder, f) for f in files]
 
     if not files:
-        print(f'文件夹 {folder} 中没有任何图片文件'); return
-
-    RESAMPLE = getattr(Image, "LANCZOS", getattr(Image, "BICUBIC", 3))
-    imgs = []
-
-    widths = []
-    for p in files:
-        stem = os.path.splitext(os.path.basename(p))[0][4:]
-        if image_type == 3:
-            if stem.isdigit() and int(stem) not in questionList:
-                continue
-
-        try: im = Image.open(p).convert("RGB")
-        except Exception as e:
-            print(f"跳过无法读取: {p} ({e})"); continue
-
-        if image_type == 3:
-            k = max(2, math.ceil(math.sqrt(len(questionList))))
-        else:
-            k = 2
-        new_w = max(1, int(im.width / k))
-        new_h = max(1, int(im.height / k))
-        im = im.resize((new_w, new_h), RESAMPLE)
-        
-        if image_type in (1, 2, 3):
-            txt = f"第{stem}页"
-            im = draw_cn_text_no_pillow(im, txt, 'top', k)
-            im = draw_cn_text_no_pillow(im, txt, 'middle', k)
-            im = draw_cn_text_no_pillow(im, txt, 'bottom', k)
-
-        imgs.append(im)
-        if image_type == 0:
-            im.save(os.path.join(folder, f"resized_{stem}.jpg"), "JPEG")
-        elif image_type == 1:
-            im.save(os.path.join(folder, f"mark_{stem}.jpg"), "JPEG")
-        widths.append(im.width)
-
-    if not imgs:
+        print(f'文件夹 {folder} 中没有任何图片文件')
         return
 
-    if image_type == 2:
-        max_w = max(widths)
-
-        padded = []
-        for im in imgs:
-            w, h = im.width, im.height
-            canvas = Image.new("RGB", (max_w, h), (255,255,255))
-            canvas.paste(im, ( (max_w - w)//2, 0 ))
-
-            padded.append(canvas)
-        imgs = padded
-
-        gap = 200
-        total_h = sum(im.height for im in imgs) + gap * (len(imgs) - 1)
-        out = Image.new("RGB", (max_w, total_h), (255,255,255))
-
-        y = 0
-        for idx, im in enumerate(imgs):
-            h = im.height
-            out.paste(im, (0, y))
-            y += h
-            if idx < len(imgs) - 1:
-                y += gap
-
-        out.save(os.path.join(folder, "long.jpg"), "JPEG", quality=int(quality), optimize=True)
-        size_bytes = os.path.getsize(os.path.join(folder, "long.jpg")) / (1024 * 1024)
-        if quality < 5:
-            print("质量已降至最低，仍无法满足文件大小要求")
-            return
-        if size_bytes > 2:
-            return concat_vertical_cv(folder, image_type, quality=quality-4)
-    elif image_type == 3:
+    if image_type == 3:
         if not questionList:
             print("请提供 questionList 参数")
             return
-        n = len(imgs)
+        sel = []
+        for p in files:
+            stem = os.path.splitext(os.path.basename(p))[0][4:]
+            if stem.isdigit() and int(stem) in questionList:
+                sel.append(p)
+        files = sel
+        if not files:
+            print("questionList 中的页码没有匹配到任何文件")
+            return
 
-        rows = math.ceil(math.sqrt(n)*1.2)
+    RESAMPLE = getattr(Image, "LANCZOS", getattr(Image, "BICUBIC", 3))
+
+    if image_type in (0, 1):
+        for p in files:
+            stem = os.path.splitext(os.path.basename(p))[0][4:]
+            try:
+                with Image.open(p) as im_src:
+                    im = im_src.convert("RGB")
+                    # k 的策略与原逻辑一致
+                    k = 2 if image_type in (0, 1, 2) else max(2, math.ceil(math.sqrt(len(questionList))))
+                    new_w = max(1, int(im.width / k))
+                    new_h = max(1, int(im.height / k))
+                    im = im.resize((new_w, new_h), RESAMPLE)
+
+                    if image_type == 1:
+                        txt = f"第{stem}页"
+                        im = draw_cn_text_no_pillow(im, txt, 'top', k)
+                        im = draw_cn_text_no_pillow(im, txt, 'middle', k)
+                        im = draw_cn_text_no_pillow(im, txt, 'bottom', k)
+
+                    outname = f"resized_{stem}.jpg" if image_type == 0 else f"mark_{stem}.jpg"
+                    im.save(os.path.join(folder, outname), "JPEG")
+            except Exception as e:
+                print(f"跳过无法处理: {p} ({e})")
+        return
+
+    if image_type == 2:
+        k = 2
+        max_w = 0
+        total_h = 0
+        valid_files = []
+        for p in files:
+            try:
+                with Image.open(p) as im_src:
+                    w, h = im_src.size
+                new_w = max(1, int(w / k))
+                new_h = max(1, int(h / k))
+                max_w = max(max_w, new_w)
+                total_h += new_h
+                valid_files.append((p, new_w, new_h))
+            except Exception as e:
+                print(f"跳过无法读取: {p} ({e})")
+
+        if not valid_files:
+            return
+
+        gap = 200
+        canvas_w = max_w
+        canvas_h = total_h + gap * (len(valid_files) - 1)
+        out = Image.new("RGB", (canvas_w, canvas_h), (255, 255, 255))
+
+        y = 0
+        for idx, (p, new_w, new_h) in enumerate(valid_files):
+            stem = os.path.splitext(os.path.basename(p))[0][4:]
+            try:
+                with Image.open(p) as im_src:
+                    im = im_src.convert("RGB").resize((new_w, new_h), RESAMPLE)
+                txt = f"第{stem}页"
+                im = draw_cn_text_no_pillow(im, txt, 'top', k)
+                im = draw_cn_text_no_pillow(im, txt, 'middle', k)
+                im = draw_cn_text_no_pillow(im, txt, 'bottom', k)
+
+                row_canvas = Image.new("RGB", (canvas_w, im.height), (255, 255, 255))
+                row_canvas.paste(im, ((canvas_w - im.width) // 2, 0))
+                out.paste(row_canvas, (0, y))
+                y += im.height
+                if idx < len(valid_files) - 1:
+                    y += gap
+            except Exception as e:
+                print(f"拼接失败，跳过: {p} ({e})")
+
+        out_path = os.path.join(folder, "long.jpg")
+        out.save(out_path, "JPEG", quality=int(quality), optimize=True)
+        size_mb = os.path.getsize(out_path) / (1024 * 1024)
+
+        q = int(quality)
+        while size_mb > 2 and q >= 5:
+            q -= 4
+            out.save(out_path, "JPEG", quality=q, optimize=True)
+            size_mb = os.path.getsize(out_path) / (1024 * 1024)
+        if size_mb > 2 and q < 5:
+            print("质量已降至最低，仍无法满足文件大小要求")
+        return
+
+    if image_type == 3:
+        n = len(files)
+        if n == 0:
+            return
+
+        k = max(2, math.ceil(math.sqrt(len(questionList))))
+        cell_w, cell_h = 0, 0
+        valid_files = []
+        for p in files:
+            try:
+                with Image.open(p) as im_src:
+                    w, h = im_src.size
+                new_w = max(1, int(w / k))
+                new_h = max(1, int(h / k))
+                cell_w = max(cell_w, new_w)
+                cell_h = max(cell_h, new_h)
+                valid_files.append((p, new_w, new_h))
+            except Exception as e:
+                print(f"跳过无法读取: {p} ({e})")
+
+        if not valid_files:
+            return
+
+        rows = math.ceil(math.sqrt(n) * 1.2)
         cols = math.ceil(n / rows)
-
-        # 统一 cell 尺寸
-        cell_w = max(im.width  for im in imgs)
-        cell_h = max(im.height for im in imgs)
         gap = 40
-
-        # 计算满列宽度
         canvas_w = cols * cell_w + (cols - 1) * gap
 
         full_rows = n // cols
@@ -330,31 +372,34 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
         used_rows = full_rows + (1 if last_row_count else 0)
         if used_rows == 0:
             used_rows = 1
-
         canvas_h = used_rows * cell_h + (used_rows - 1) * gap
-        canvas = Image.new("RGB", (canvas_w, canvas_h), (255,255,255))
 
-        for i, im in enumerate(imgs):
-            row = i // cols
-            if row == full_rows and last_row_count:
-                row_count = last_row_count
-            else:
-                row_count = cols
+        canvas = Image.new("RGB", (canvas_w, canvas_h), (255, 255, 255))
 
-            # 行起始 y
-            y = row * (cell_h + gap)
+        for i, (p, new_w, new_h) in enumerate(valid_files):
+            stem = os.path.splitext(os.path.basename(p))[0][4:]
+            try:
+                with Image.open(p) as im_src:
+                    im = im_src.convert("RGB").resize((new_w, new_h), RESAMPLE)
+                txt = f"第{stem}页"
+                im = draw_cn_text_no_pillow(im, txt, 'top', k)
+                im = draw_cn_text_no_pillow(im, txt, 'middle', k)
+                im = draw_cn_text_no_pillow(im, txt, 'bottom', k)
 
-            # 行宽
-            row_width = row_count * cell_w + (row_count - 1) * gap
-            start_x = 0 if row_count == cols else (canvas_w - row_width) // 2  # 居中最后一行
+                row = i // cols
+                row_count = last_row_count if (row == full_rows and last_row_count) else cols
+                y = row * (cell_h + gap)
+                row_width = row_count * cell_w + (row_count - 1) * gap
+                start_x = 0 if row_count == cols else (canvas_w - row_width) // 2
 
-            col_in_row = i % cols if row_count == cols else i - full_rows * cols
-            x = start_x + col_in_row * (cell_w + gap)
+                col_in_row = i % cols if row_count == cols else i - full_rows * cols
+                x = start_x + col_in_row * (cell_w + gap)
 
-            iw, ih = im.width, im.height
-            x_im = x + (cell_w - iw) // 2
-            y_im = y + (cell_h - ih) // 2
-            canvas.paste(im, (x_im, y_im))
+                x_im = x + (cell_w - im.width) // 2
+                y_im = y + (cell_h - im.height) // 2
+                canvas.paste(im, (x_im, y_im))
+            except Exception as e:
+                print(f"网格粘贴失败，跳过: {p} ({e})")
 
         canvas.save(os.path.join(folder, "grid.jpg"), "JPEG", quality=int(quality), optimize=True)
         return
