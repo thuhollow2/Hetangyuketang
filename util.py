@@ -275,7 +275,6 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
         widths.append(im.width)
 
     if not imgs:
-        print("没有可拼接的图片")
         return
 
     if image_type == 2:
