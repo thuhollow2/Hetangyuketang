@@ -291,6 +291,10 @@ class yuketang:
             loop = asyncio.get_event_loop()
             problems_keys = [int(k) for k in problems.keys()]
             await loop.run_in_executor(None, clear_folder, folder_path)
+            with open(os.path.join(folder_path, "ppt.json"), "w", encoding="utf-8") as f:
+                json.dump(info, f, ensure_ascii=False, indent=4)
+            with open(os.path.join(folder_path, "problems.txt"), "w", encoding="utf-8") as f:
+                f.write(str(problems))
             await loop.run_in_executor(None, download_images_to_folder, slides, folder_path)
             await loop.run_in_executor(None, concat_vertical_cv, folder_path, 0, 100)
             await loop.run_in_executor(None, concat_vertical_cv, folder_path, 1, 100)
@@ -298,8 +302,6 @@ class yuketang:
             await loop.run_in_executor(None, concat_vertical_cv, folder_path, 3, 100, problems_keys)
             output_pdf_path=os.path.join(folder_path, f"{self.lessonIdDict[lessonId]['classroomName']}-{self.lessonIdDict[lessonId]['title']}.pdf")
             await loop.run_in_executor(None, images_to_pdf, folder_path, output_pdf_path)
-            with open(os.path.join(folder_path, "problems.txt"), "w", encoding="utf-8") as f:
-                f.write(str(problems))
             if self.ppt:
                 if os.path.exists(output_pdf_path):
                     try:
