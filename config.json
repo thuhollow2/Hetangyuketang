@@ -3,10 +3,10 @@
         "domain": "pro.yuketang.cn",
         "classroomCodeList": ["JZOJ5C", "G84UAB"],
         "classroomWhiteList": [],
-        "classroomBlackList": ["2023秋-机器学习-0", "2023清华实践"],
+        "classroomBlackList": ["未央.机器学习", "未央.深度学习"],
         "classroomStartTimeDict": {
-            "2023秋-机器学习-0": {"1": "08:00", "2": "13:30"},
-            "2023清华实践": {"1": "13:30"}
+            "未央.机器学习": {"1": "08:00", "2": "13:30"},
+            "未央.深度学习": {"1": "13:30"}
         },
         "llm": false,
         "an": false,
@@ -184,3 +184,4 @@
         "timeout": 30
     }
 }
+
