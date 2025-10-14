@@ -311,7 +311,7 @@ class yuketang:
                 else:
                     self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 没有PPT")
 
-            if self.llm:
+            if self.llm and problems:
                 reply = await loop.run_in_executor(None, LLMManager().generateAnswer, folder_path)
                 reply_text = "LLM答案列表:\n"
                 for key in problems_keys:
