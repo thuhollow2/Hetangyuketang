@@ -297,17 +297,17 @@ class LLMManager:
             elif tp == 4:
                 new_list = []
                 for i in range(len(page_answers[0])):
-                    new_list.append(best_item([[ans[i]] for ans in page_answers], scoreList))
+                    new_list.append(best_item([[ans[i]] for ans in page_answers], scoreList)[0])
                 best_answer[page] = new_list
             elif tp == 5:
                 new_list = []
                 for i in range(len(page_answers[0])):
-                    new_list.append(best_item([[ans[i]] for ans in page_answers], scoreList))
+                    new_list.append(best_item([[ans[i]] for ans in page_answers], scoreList)[0])
                 best_answer[page] = new_list
             else:
                 new_list = []
                 for i in range(len(page_answers[0])):
-                    new_list.append(best_item([[ans[i]] for ans in page_answers], scoreList))
+                    new_list.append(best_item([[ans[i]] for ans in page_answers], scoreList)[0])
                 best_answer[page] = new_list
         reply["result"].sort(key=lambda x: float(x['usedTime'][:-1]))
         reply["best_answer"] = best_answer
@@ -346,37 +346,28 @@ def convert_problems_to_query(problems):
             query_part += "单选题,"
             if details.get('body'):
                 query_part += f"题目是\"{details['body']}\","
-            if details.get('option_values'):
-                for index, val in enumerate(details['option_values']):
-                    if val.strip():
-                        query_part += f"选项{details['option_keys'][index]}与\"{val.strip()}\"相关,"
-            query_part += "你应该从"
-            if details.get('option_keys'):
-                query_part += "\"" + ",".join(details['option_keys']) + "\""
-            else:
-                query_part += "所有选项"
-            query_part += "中选出最符合的一个选项"
+            for index, val in enumerate(details['option_values']):
+                if val.strip():
+                    query_part += f"选项{details['option_keys'][index]}是\"{val.strip()}\","
+            query_part += "你应该从\"" + ",".join(details['option_keys']) + "\"中选出最符合的一个选项"
             format_part += f"[\"{details['option_keys'][0]}\"]"
         elif tp == 2:
             query_part += "多选题,"
             if details.get('body'):
                 query_part += f"题目是\"{details['body']}\","
-            if details.get('option_values'):
-                for index, val in enumerate(details['option_values']):
-                    if val.strip():
-                        query_part += f"选项{details['option_keys'][index]}与\"{val.strip()}\"相关,"
-            query_part += "你应该从"
-            if details.get('option_keys'):
-                query_part += "\"" + ",".join(details['option_keys']) + "\""
-            else:
-                query_part += "所有选项"
-            query_part += "中选出最符合的一个或多个选项"
+            for index, val in enumerate(details['option_values']):
+                if val.strip():
+                    query_part += f"选项{details['option_keys'][index]}是\"{val.strip()}\","
+            query_part += "你应该从\"" + ",".join(details['option_keys']) + "\"中选出最符合的一个或多个选项"
             format_part += f"[\"{details['option_keys'][0]}\", \"{details['option_keys'][1]}\"]"
         elif tp == 3:
             query_part += "投票题,"
             if details.get('body'):
                 query_part += f"题目是\"{details['body']}\","
-            query_part += "你应该选出最符合的一个选项"
+            for index, val in enumerate(details['option_values']):
+                if val.strip():
+                    query_part += f"选项{details['option_keys'][index]}是\"{val.strip()}\","
+            query_part += "你应该从\"" + ",".join(details['option_keys']) + "\"中选出最符合的一个选项"
             format_part += f"[\"{details['option_keys'][0]}\"]"
         elif tp == 4:
             query_part += "填空题,"
@@ -388,8 +379,8 @@ def convert_problems_to_query(problems):
             query_part += "主观题,"
             if details.get('body'):
                 query_part += f"题目是\"{details['body']}\","
-            query_part += "你应该结合题目给出合适答案"
-            format_part += "[" + ", ".join(["\"合适答案\"" for _ in range(1)]) + "]"
+            query_part += "你应该结合题目给出一个答案,尽量简明扼要"
+            format_part += "[\"答案\"]"
         else:
             query_part += "其它题型,"
             if details.get('body'):
@@ -400,8 +391,8 @@ def convert_problems_to_query(problems):
         format_parts.append(format_part)
     if not query_parts or not format_parts:
         return ""
-    query = "这些是课程文件,请你先仔细阅读完所有内容,理解所有知识后,再进行后续操作.现在请你严谨准确地解答并只解答其中以下页码的题目:" + ",".join([str(p) for p in pages]) + "." + ";".join(query_parts) + "."
-    query += "解答完毕后最终输出的答案形式应该是一个字典,键是页码,值是选项列表(适用于单选题,多选题和投票题,单选题和投票题应给出含一个选项的列表,如[\"A\"];多选题应给出含一个或多个选项的列表,如[\"A\", \"B\"])或答案列表(适用于填空题,主观题和其它题型,填空题应给出含答案数与空白数相等的列表,主观题和其它题型应给出含合适答案的列表),字典必须写成一行字符串,并在字符串前面和后面都加上5个\"~\"."
+    query = "这些是课程文件,请你先仔细阅读完所有内容,理解所有知识后,再进行后续操作.现在请你严谨准确地解答并只解答以下页码的题目:" + ",".join([str(p) for p in pages]) + "." + ";".join(query_parts) + "."
+    query += "解答完毕后可以得到一个字典,键是页码,值是选项列表(适用于单选题,多选题和投票题,单选题和投票题应给出含一个选项的列表,如[\"A\"];多选题应给出含一个或多个选项的列表,如[\"A\", \"B\"])或答案列表(适用于填空题,主观题和其它题型,填空题应给出含答案数与空白数相等的列表,主观题应给出含一个答案的列表,其他题型给出含合适答案的列表),字典必须写成一行字符串.最终答案应该在该字符串前面和后面都加上5个\"~\"."
     query += "最终答案格式可参照如下: ~~~~~{" + ",".join(format_parts) + "}~~~~~ .按上述要求,请你给出并只给出最终答案."
     return query
 
@@ -446,13 +437,13 @@ def convert_answer_to_dict(answer, problems):
                         continue
                     all_answers[page].append(answer_dict[page])
                 elif tp == 5:
-                    if not isinstance(answer_dict[page], list) or len(answer_dict[page]) < 1:
-                        print(f"答案格式错误,第{page}页应为主观题,答案应为含一个或多个合适答案的列表")
+                    if not isinstance(answer_dict[page], list) or len(answer_dict[page]) != 1:
+                        print(f"答案格式错误,第{page}页应为主观题,答案应为含一个答案的列表")
                         continue
                     all_answers[page].append(answer_dict[page])
                 else:
                     if not isinstance(answer_dict[page], list) or len(answer_dict[page]) < 1:
-                        print(f"答案格式错误,第{page}页应为其它题型,答案应为含一个或多个合适答案的列表")
+                        print(f"答案格式错误,第{page}页应为其它题型,答案应为含合适答案的列表")
                         continue
                     all_answers[page].append(answer_dict[page])
         except Exception as e:
@@ -468,18 +459,18 @@ def convert_answer_to_dict(answer, problems):
             correction_dict[page] = best_item(all_answers[page])
         elif tp == 4:
             new_list = []
-            for i in range(len(all_answers[page][0])):
-                new_list.append(best_item([[ans[i]] for ans in all_answers[page]]))
+            for i in range(min([len(ans) for ans in all_answers[page]])):
+                new_list.append(best_item([[ans[i]] for ans in all_answers[page]])[0])
             correction_dict[page] = new_list
         elif tp == 5:
             new_list = []
-            for i in range(len(all_answers[page][0])):
-                new_list.append(best_item([[ans[i]] for ans in all_answers[page]]))
+            for i in range(min([len(ans) for ans in all_answers[page]])):
+                new_list.append(best_item([[ans[i]] for ans in all_answers[page]])[0])
             correction_dict[page] = new_list
         else:
             new_list = []
-            for i in range(len(all_answers[page][0])):
-                new_list.append(best_item([[ans[i]] for ans in all_answers[page]]))
+            for i in range(min([len(ans) for ans in all_answers[page]])):
+                new_list.append(best_item([[ans[i]] for ans in all_answers[page]])[0])
             correction_dict[page] = new_list
     return correction_dict
 
@@ -806,6 +797,7 @@ def generate_ot_answer(query, folder, config):
         "model": config['model'],
         "temperature": config['temperature'],
         "max_tokens": 10000,
+        "transforms": ["middle-out"],
         "messages": []
     }
     if config['prompt']:
@@ -1027,7 +1019,7 @@ def generate_ms_answer(query, folder, config):
     return text
 
 if __name__ == "__main__":
-    folder = "1529274209982060032"
+    folder = "1531440735946350720"
     with open(os.path.join(folder, "problems.txt"), "r", encoding="utf-8") as f:
         problems = ast.literal_eval(f.read().strip())
     reply = LLMManager().generateAnswer(folder)
