@@ -367,7 +367,10 @@ def convert_problems_to_query(problems):
             for index, val in enumerate(details['option_values']):
                 if val.strip():
                     query_part += f"选项{details['option_keys'][index]}是\"{val.strip()}\","
-            query_part += "你应该从\"" + ",".join(details['option_keys']) + "\"中选出最符合的一个选项"
+            if details['pollingCount'] > 1:
+                query_part += "你应该从\"" + ",".join(details['option_keys']) + "\"中选出最符合的一至" + str(details['pollingCount']) + "个选项"
+            else:
+                query_part += "你应该从\"" + ",".join(details['option_keys']) + "\"中选出最符合的一个选项"
             format_part += f"[\"{details['option_keys'][0]}\"]"
         elif tp == 4:
             query_part += "填空题,"
@@ -392,15 +395,15 @@ def convert_problems_to_query(problems):
     if not query_parts or not format_parts:
         return ""
     query = "这些是课程文件,请你先仔细阅读完所有内容,理解所有知识后,再进行后续操作.现在请你严谨准确地解答并只解答以下页码的题目:" + ",".join([str(p) for p in pages]) + "." + ";".join(query_parts) + "."
-    query += "解答完毕后可以得到一个字典,键是页码,值是选项列表(适用于单选题,多选题和投票题,单选题和投票题应给出含一个选项的列表,如[\"A\"];多选题应给出含一个或多个选项的列表,如[\"A\", \"B\"])或答案列表(适用于填空题,主观题和其它题型,填空题应给出含答案数与空白数相等的列表,主观题应给出含一个答案的列表,其他题型给出含合适答案的列表),字典必须写成一行字符串.最终答案应该在该字符串前面和后面都加上5个\"~\"."
-    query += "最终答案格式可参照如下: ~~~~~{" + ",".join(format_parts) + "}~~~~~ .按上述要求,请你给出并只给出最终答案."
+    query += "解答完毕后可以得到一个字典,键是页码,值是选项列表(适用于单选题,多选题和投票题,单选题应给出含一个选项的列表,如[\"A\"];多选题应给出含一个或多个选项的列表,如[\"A\", \"B\"];投票题应给出含一至多个选项的列表,如[\"A\"])或答案列表(适用于填空题,主观题和其它题型,填空题应给出含答案数与空白数相等的列表,主观题应给出含一个答案的列表,其他题型给出含合适答案的列表),字典必须写成一行字符串.最终答案应该在该字符串前面和后面都加上5个\"~\"."
+    query += "最终答案格式可参照如下: ~~~~~{" + ", ".join(format_parts) + "}~~~~~ .按上述要求,请你给出并只给出最终答案."
     return query
 
 def convert_answer_to_dict(answer, problems):
     correction_dict = {}
     if not answer:
         return correction_dict
-    new_answer = answer.replace('\\', '')
+    new_answer = answer.replace('\\"', '"')
     answer_dicts = re.findall(r'~\s*({.*?})\s*~', new_answer, re.DOTALL)
     pages = list(problems.keys())
     all_answers = {page: [] for page in pages}
@@ -426,11 +429,11 @@ def convert_answer_to_dict(answer, problems):
                         all_answers[page].append(options)
                 elif tp == 3:
                     if not isinstance(answer_dict[page], list):
-                        print(f"答案格式错误,第{page}页应为投票题,答案应为含一个选项的列表")
+                        print(f"答案格式错误,第{page}页应为投票题,答案应为含一至多个选项的列表")
                         continue
                     options = [opt for opt in problems[page]['option_keys'] if opt in answer_dict[page]]
-                    if options:
-                        all_answers[page].append([options[0]])
+                    if options and len(options) <= problems[page]['pollingCount']:
+                        all_answers[page].append(options)
                 elif tp == 4:
                     if not isinstance(answer_dict[page], list) or len(answer_dict[page]) != problems[page]["num_blanks"]:
                         print(f"答案格式错误,第{page}页应为填空题,答案应为含{problems[page].get('num_blanks', 1)}个答案的列表")
