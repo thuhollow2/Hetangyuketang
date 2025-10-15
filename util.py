@@ -243,7 +243,6 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
 
     if image_type == 3:
         if not questionList:
-            print("请提供 questionList 参数")
             return
         sel = []
         for p in files:
