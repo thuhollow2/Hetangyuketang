@@ -446,6 +446,7 @@ class yuketang:
                             if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != item['pres']:
                                 del_dict()
                                 self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课件更新")
+                                self.lesson_info(lessonId)
                             self.lessonIdDict[lessonId]['presentation']=item['pres']
                             self.lessonIdDict[lessonId]['si']=item['si']
                             break
@@ -453,6 +454,7 @@ class yuketang:
                         if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['presentation']:
                             del_dict()
                             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课件更新")
+                            self.lesson_info(lessonId)
                         self.lessonIdDict[lessonId]['presentation']=server_response['presentation']
                     if server_response.get('slideindex'):
                         self.lessonIdDict[lessonId]['si']=server_response['slideindex']
@@ -463,6 +465,7 @@ class yuketang:
                         if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['presentation']:
                             del_dict()
                             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课件更新")
+                            self.lesson_info(lessonId)
                         self.lessonIdDict[lessonId]['presentation']=server_response['presentation']
                     if server_response.get('slideindex'):
                         self.lessonIdDict[lessonId]['si']=server_response['slideindex']
@@ -473,6 +476,7 @@ class yuketang:
                         if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['slide']['pres']:
                             del_dict()
                             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课件更新")
+                            self.lesson_info(lessonId)
                         self.lessonIdDict[lessonId]['presentation']=server_response['slide']['pres']
                     if server_response['slide'].get('si'):
                         self.lessonIdDict[lessonId]['si']=server_response['slide']['si']
@@ -483,6 +487,7 @@ class yuketang:
                         if flag_ppt==0 and self.lessonIdDict[lessonId]['presentation'] != server_response['problem']['pres']:
                             del_dict()
                             self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 课件更新")
+                            self.lesson_info(lessonId)
                         self.lessonIdDict[lessonId]['presentation']=server_response['problem']['pres']
                     if server_response['problem'].get('si'):
                         self.lessonIdDict[lessonId]['si']=server_response['problem']['si']
