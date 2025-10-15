@@ -231,7 +231,7 @@ def draw_cn_text_no_pillow(im, text, vpos, k):
     return im
 
 def concat_vertical_cv(folder, image_type, quality, questionList=[]):
-    # 收集并排序文件（raw_数字.jpg）
+    # 收集并排序文件(raw_数字.jpg)
     files = [f for f in os.listdir(folder)
              if f.lower().endswith('.jpg') and f.lower().startswith('raw_') and os.path.splitext(f)[0][4:].isdigit()]
     files.sort(key=lambda x: int(os.path.splitext(x)[0][4:]))
@@ -282,30 +282,64 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
         return
 
     if image_type == 2:
+        MAX_JPEG_DIM = 65000  # 避免超过 JPEG 维度极限
         k = 2
         max_w = 0
         total_h = 0
         valid_files = []
+
+        orig = []
         for p in files:
             try:
                 with Image.open(p) as im_src:
                     w, h = im_src.size
-                new_w = max(1, int(w / k))
-                new_h = max(1, int(h / k))
-                max_w = max(max_w, new_w)
-                total_h += new_h
-                valid_files.append((p, new_w, new_h))
+                orig.append((p, w, h))
             except Exception as e:
                 print(f"跳过无法读取: {p} ({e})")
+
+        if not orig:
+            return
+
+        gap = 50
+        n = len(orig)
+        max_w_raw = max(w for _, w, _ in orig)
+        sum_h_raw = sum(h for _, _, h in orig)
+        need_k_h = math.ceil((sum_h_raw + gap * (n - 1)) / max(1, (MAX_JPEG_DIM - 1)))
+        need_k_w = math.ceil(max_w_raw / max(1, (MAX_JPEG_DIM - 1)))
+        k = max(2, need_k_h, need_k_w)
+
+        for p, w, h in orig:
+            new_w = max(1, int(w / k))
+            new_h = max(1, int(h / k))
+            max_w = max(max_w, new_w)
+            total_h += new_h
+            valid_files.append((p, new_w, new_h))
 
         if not valid_files:
             return
 
-        gap = 200
         canvas_w = max_w
         canvas_h = total_h + gap * (len(valid_files) - 1)
-        out = Image.new("RGB", (canvas_w, canvas_h), (255, 255, 255))
+        if canvas_w > MAX_JPEG_DIM or canvas_h > MAX_JPEG_DIM:
+            scale = max(
+                math.ceil(canvas_w / (MAX_JPEG_DIM - 1)),
+                math.ceil(canvas_h / (MAX_JPEG_DIM - 1))
+            )
+            k *= scale
+            max_w = 0
+            total_h = 0
+            valid2 = []
+            for p, w, h in orig:
+                nw = max(1, int(w / k))
+                nh = max(1, int(h / k))
+                max_w = max(max_w, nw)
+                total_h += nh
+                valid2.append((p, nw, nh))
+            valid_files = valid2
+            canvas_w = max_w
+            canvas_h = total_h + gap * (len(valid_files) - 1)
 
+        out = Image.new("RGB", (canvas_w, canvas_h), (255, 255, 255))
         y = 0
         for idx, (p, new_w, new_h) in enumerate(valid_files):
             stem = os.path.splitext(os.path.basename(p))[0][4:]
@@ -324,19 +358,32 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
                 if idx < len(valid_files) - 1:
                     y += gap
             except Exception as e:
-                print(f"拼接失败，跳过: {p} ({e})")
+                print(f"拼接失败,跳过: {p} ({e})")
 
         out_path = os.path.join(folder, "long.jpg")
-        out.save(out_path, "JPEG", quality=int(quality), optimize=True)
-        size_mb = os.path.getsize(out_path) / (1024 * 1024)
-
         q = int(quality)
+
+        try:
+            out.save(out_path, "JPEG", quality=q, optimize=True)
+        except Exception as e:
+            print(f"保存长图失败(optimize=True),重试无优化: {e}")
+            try:
+                out.copy().save(out_path, "JPEG", quality=q)
+            except Exception as e2:
+                print(f"保存长图再次失败: {e2}")
+                return
+            
+        size_mb = os.path.getsize(out_path) / (1024 * 1024)
         while size_mb > 2 and q >= 5:
             q -= 4
-            out.save(out_path, "JPEG", quality=q, optimize=True)
-            size_mb = os.path.getsize(out_path) / (1024 * 1024)
+            try:
+                out.save(out_path, "JPEG", quality=q)
+                size_mb = os.path.getsize(out_path) / (1024 * 1024)
+            except Exception as e:
+                print(f"降质重存失败: {e}")
+                break
         if size_mb > 2 and q < 5:
-            print("质量已降至最低，仍无法满足文件大小要求")
+            print("质量已降至最低,仍无法满足文件大小要求")
         return
 
     if image_type == 3:
@@ -399,7 +446,7 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
                 y_im = y + (cell_h - im.height) // 2
                 canvas.paste(im, (x_im, y_im))
             except Exception as e:
-                print(f"网格粘贴失败，跳过: {p} ({e})")
+                print(f"网格粘贴失败,跳过: {p} ({e})")
 
         canvas.save(os.path.join(folder, "grid.jpg"), "JPEG", quality=int(quality), optimize=True)
         return
