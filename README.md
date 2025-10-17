@@ -286,13 +286,13 @@ python main.py
 
  - 首次运行将下载、发送并在终端展示雨课堂登录二维码，微信扫码获取 cookie，有效期约两周；有效期少于两天时，每小时初将发送二维码提醒，请及时扫码更新，谨防失效后消息轰炸
 
- - 支持多线程监听，每 30 秒扫描新课堂、尝试使用邀请码/课堂暗号加入新班级，随后自动签到、下载课件（PDF）、打印题目、生成并打印答案、获取 PPT 进度、自动答题等
+ - 支持多线程监听，每 30 秒扫描新课堂、尝试使用班级邀请码/课堂暗号加入新班级，随后自动签到、下载课件（PDF）、打印题目、生成并打印答案、获取 PPT 进度、自动答题等
 
  - 签到方式为通过“正在上课”提示进入课堂
 
  - 答案已无法从雨课堂前端获取，现改用大语言模型生成
 
- - 自动答题支持单选题、多选题、投票题、填空题和主观题；若未获取到答案，将提交默认答案（可修改[此处](yuketang.py#L351-L362)）
+ - 自动答题支持单选题、多选题、投票题、填空题和主观题；若未获取到答案，将提交默认答案（可修改[此处](yuketang.py#L379-L390)）
 
  - 课程名可在雨课堂首页的课程标签里查找，具体如图中红框所示
 
@@ -320,7 +320,7 @@ python main.py
 <details>
 <summary><code>classroomCodeList</code></summary>
 
-邀请码/课堂暗号列表。每 30 秒尝试加入相应班级，班级满员时可启用此功能待成员退出抢占名额
+班级邀请码/课堂暗号列表。每 30 秒尝试加入相应班级，班级满员时可启用此功能待成员退出抢占名额
 
 </details>
 
@@ -398,11 +398,11 @@ python main.py
 
 #### 服务凭证
 
- - 企业微信：[注册企业微信](https://work.weixin.qq.com/wework_admin/register_wx?from=myhome)、[创建应用](https://work.weixin.qq.com/wework_admin/frame#apps/createApiApp)、[**配置企业可信IP**](https://work.weixin.qq.com/wework_admin/frame#apps)，填充 `touser`、`agentId`、`secret`、`companyId`
+ - 企业微信：[注册企业微信](https://work.weixin.qq.com/wework_admin/register_wx?from=myhome)、[创建应用](https://work.weixin.qq.com/wework_admin/frame#apps/createApiApp)、[**配置企业可信 IP**](https://work.weixin.qq.com/wework_admin/frame#apps)，填充 `touser`、`agentId`、`secret`、`companyId`
 
- - 钉钉：[注册钉钉开发者账号](https://open-dev.dingtalk.com/)、[创建并发布企业内部应用（应用内创建机器人）](https://open-dev.dingtalk.com/fe/app#/corp/app)、创建群会话、[获取群会话openConversationId](https://open.dingtalk.com/tools/explorer/jsapi?id=10303)、机器人添加进群，填充 `appKey`、`appSecret`、`robotCode`、`openConversationId`
+ - 钉钉：[注册钉钉开发者账号](https://open-dev.dingtalk.com/)、[创建并发布企业内部应用（应用内创建机器人）](https://open-dev.dingtalk.com/fe/app#/corp/app)、创建群会话、[获取群会话 openConversationId](https://open.dingtalk.com/tools/explorer/jsapi?id=10303)、机器人添加进群，填充 `appKey`、`appSecret`、`robotCode`、`openConversationId`
 
- - 飞书：[注册飞书开发者账号、创建并发布企业内部应用](https://open.feishu.cn/app?lang=zh-CN)、[开启机器人能力](https://open.feishu.cn/document/faq/trouble-shooting/how-to-enable-bot-ability)、[获取OpenId](https://open.feishu.cn/document/server-docs/im-v1/message/create)、开通权限（[*以应用的身份发消息*](https://open.feishu.cn/document/server-docs/im-v1/message/create)，[*获取与上传图片或文件资源*](https://open.feishu.cn/document/server-docs/im-v1/file/create)），填充 `appId`、`appSecret`、`openId`
+ - 飞书：[注册飞书开发者账号、创建并发布企业内部应用](https://open.feishu.cn/app?lang=zh-CN)、[开启机器人能力](https://open.feishu.cn/document/faq/trouble-shooting/how-to-enable-bot-ability)、[获取 OpenId](https://open.feishu.cn/document/server-docs/im-v1/message/create)、开通权限（[*以应用的身份发消息*](https://open.feishu.cn/document/server-docs/im-v1/message/create)，[*获取与上传图片或文件资源*](https://open.feishu.cn/document/server-docs/im-v1/file/create)），填充 `appId`、`appSecret`、`openId`
 
 #### 分块限制
 
@@ -477,13 +477,13 @@ python main.py
 
 使用模型前务必测试效果，确保能正确处理题目并生成合理答案
 
-预置了[课堂文件夹](./1529274209982060032)，可用来测试各模型效果。直接运行 `llm.py` 观察输出即可
+预置了 [PPT 文件夹](./1529274209982060032)，可用来测试各模型效果。直接运行 `llm.py` 观察输出即可
 
 ```shell
 python llm.py
 ```
 
-若想测试其他课堂，可在使用程序签到该课堂，生成课堂文件夹后，修改[课堂号](llm.py#L1046)
+若想测试其他课堂，可在使用程序签到该课堂、生成 PPT 文件夹后，修改 [PPT 编号](llm.py#L1046)
 
 </details>
 
