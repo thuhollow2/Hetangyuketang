@@ -416,7 +416,7 @@ def convert_problems_to_query(problems):
     if not query_parts or not format_parts:
         return ""
     query = "这些是课程文件,请你先仔细阅读完所有内容,理解所有知识后,再严谨准确地解答并只解答以下页码的题目:" + ",".join([str(p) for p in pages]) + "." + ";".join(query_parts) + "."
-    query += "解答完毕后可以得到一个字典,键是页码,值是选项列表(适用于单选题,多选题和投票题,单选题应给出含一个选项的列表,如[\"A\"];多选题应给出含一个或多个选项的列表,如[\"A\", \"B\"];投票题应给出含合适个选项的列表,如[\"A\"])或答案列表(适用于填空题,主观题和其它题型,填空题应给出数量与填空处相等的答案的列表,主观题应给出含一个答案的列表,其他题型给出含合适答案的列表),字典必须写成一行字符串.最终答案应该在该字符串前面和后面都加上5个\"~\"."
+    query += "解答完毕后可以得到一个字典,键是页码,值是选项列表(适用于单选题,多选题和投票题,单选题应给出只含一个选项的列表,如[\"A\"];多选题应给出含一个或多个选项的列表,如[\"A\", \"B\"];投票题应给出含合适个选项的列表,如[\"A\"])或答案列表(适用于填空题,主观题和其它题型,填空题应给出数量与填空处相等的答案的列表,主观题应给出只含一个答案的列表,其他题型给出含合适答案的列表),字典必须写成一行字符串.最终答案应该在该字符串前面和后面都加上5个\"~\"."
     query += "最终答案格式可参照如下: ~~~~~{" + ", ".join(format_parts) + "}~~~~~ .按上述要求,请你给出并只给出最终答案."
     return query
 
@@ -436,7 +436,7 @@ def convert_answer_to_dict(answer, problems):
                 tp = problems[page]['problemType']
                 if tp == 1:
                     if not isinstance(answer_dict[page], list):
-                        print(f"答案格式错误,第{page}页应为单选题,答案应为含一个选项的列表")
+                        print(f"答案格式错误,第{page}页应为单选题,答案应为只含一个选项的列表")
                         continue
                     options = [opt for opt in problems[page]['option_keys'] if opt in answer_dict[page]]
                     if options:
@@ -462,7 +462,7 @@ def convert_answer_to_dict(answer, problems):
                     all_answers[page].append([ans.strip() for ans in answer_dict[page]])
                 elif tp == 5:
                     if not isinstance(answer_dict[page], list) or len(answer_dict[page]) != 1:
-                        print(f"答案格式错误,第{page}页应为主观题,答案应为含一个答案的列表")
+                        print(f"答案格式错误,第{page}页应为主观题,答案应为只含一个答案的列表")
                         continue
                     all_answers[page].append([ans.strip() for ans in answer_dict[page]])
                 else:
@@ -1051,7 +1051,7 @@ if __name__ == "__main__":
     for key in problems.keys():
         reply_text += "-"*20 + "\n"
         problemType = {1:"单选题", 2:"多选题", 3:"投票题", 4:"填空题", 5:"主观题"}.get(problems[key]['problemType'], "其它题型")
-        reply_text += f"PPT: 第{key}页 {problemType} {problems[key].get('score', 0)}分\n"
+        reply_text += f"PPT: 第{key}页 {problemType} {format(float(problems[key].get('score', 0))/100.0, '.15f').rstrip('0').rstrip('.') or '0'}分\n"
         if reply['best_answer'].get(key):
             reply_text += f"最佳答案: {reply['best_answer'][key]}\n所有答案:\n"
             for r in reply["result"]:
