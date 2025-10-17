@@ -296,17 +296,17 @@ class LLMManager:
                 best_answer[page] = best_item(page_answers, scoreList)
             elif tp == 4:
                 new_list = []
-                for i in range(len(page_answers[0])):
+                for i in range(min([len(ans) for ans in page_answers])):
                     new_list.append(best_item([[ans[i]] for ans in page_answers], scoreList)[0])
                 best_answer[page] = new_list
             elif tp == 5:
                 new_list = []
-                for i in range(len(page_answers[0])):
+                for i in range(min([len(ans) for ans in page_answers])):
                     new_list.append(best_item([[ans[i]] for ans in page_answers], scoreList)[0])
                 best_answer[page] = new_list
             else:
                 new_list = []
-                for i in range(len(page_answers[0])):
+                for i in range(min([len(ans) for ans in page_answers])):
                     new_list.append(best_item([[ans[i]] for ans in page_answers], scoreList)[0])
                 best_answer[page] = new_list
         reply["result"].sort(key=lambda x: float(x['usedTime'][:-1]))
@@ -344,58 +344,79 @@ def convert_problems_to_query(problems):
         tp = details['problemType']
         if tp == 1:
             query_part += "单选题,"
-            if details.get('body'):
-                query_part += f"题目是\"{details['body']}\","
+            if details.get('body').strip():
+                query_part += f"题目是\"{details['body'].strip()}\","
+            else:
+                query_part += "题目参考该页内容,"
             for index, val in enumerate(details['option_values']):
                 if val.strip():
                     query_part += f"选项{details['option_keys'][index]}是\"{val.strip()}\","
+                else:
+                    query_part += f"选项{details['option_keys'][index]}参考该页内容,"
             query_part += "你应该从\"" + ",".join(details['option_keys']) + "\"中选出最符合的一个选项"
             format_part += f"[\"{details['option_keys'][0]}\"]"
         elif tp == 2:
             query_part += "多选题,"
-            if details.get('body'):
-                query_part += f"题目是\"{details['body']}\","
+            if details.get('body').strip():
+                query_part += f"题目是\"{details['body'].strip()}\","
+            else:
+                query_part += "题目参考该页内容,"
             for index, val in enumerate(details['option_values']):
                 if val.strip():
                     query_part += f"选项{details['option_keys'][index]}是\"{val.strip()}\","
+                else:
+                    query_part += f"选项{details['option_keys'][index]}参考该页内容,"
             query_part += "你应该从\"" + ",".join(details['option_keys']) + "\"中选出最符合的一个或多个选项"
             format_part += f"[\"{details['option_keys'][0]}\", \"{details['option_keys'][1]}\"]"
         elif tp == 3:
             query_part += "投票题,"
-            if details.get('body'):
-                query_part += f"题目是\"{details['body']}\","
+            if details.get('body').strip():
+                query_part += f"题目是\"{details['body'].strip()}\","
+            else:
+                query_part += "题目参考该页内容,"
             for index, val in enumerate(details['option_values']):
                 if val.strip():
                     query_part += f"选项{details['option_keys'][index]}是\"{val.strip()}\","
+                else:
+                    query_part += f"选项{details['option_keys'][index]}参考该页内容,"
             if details['pollingCount'] > 1:
-                query_part += "你应该从\"" + ",".join(details['option_keys']) + "\"中选出最符合的一至" + str(details['pollingCount']) + "个选项"
+                query_part += "你应该从\"" + ",".join(details['option_keys']) + "\"中选出最符合的一个或多个选项，最多" + str(details['pollingCount']) + "个选项"
             else:
                 query_part += "你应该从\"" + ",".join(details['option_keys']) + "\"中选出最符合的一个选项"
             format_part += f"[\"{details['option_keys'][0]}\"]"
         elif tp == 4:
             query_part += "填空题,"
-            if details.get('body'):
-                query_part += f"题目是\"{details['body']}\","
-            query_part += f"你应该在{details.get('num_blanks', '若干')}个空白处给出共{details.get('num_blanks', '若干')}个答案;"
-            format_part += "[" + ", ".join(["\"答案\"" for _ in range(details.get('num_blanks', 1))]) + "]"
+            if details.get('body').strip():
+                query_part += f"题目是\"{details['body'].strip()}\","
+            else:
+                query_part += "题目参考该页内容,"
+            if details['num_blanks'] > 1:
+                query_part += f"你应该在\"[填空1]\"至\"[填空{details['num_blanks']}]\"处填上共{details['num_blanks']}个答案"
+            else:
+                query_part += f"你应该在\"[填空1]\"处填上1个答案"
+            format_part += "[" + ", ".join(["\"[填空" + str(i) + "]答案\"" for i in range(1, details['num_blanks'] + 1)]) + "]"
         elif tp == 5:
             query_part += "主观题,"
-            if details.get('body'):
-                query_part += f"题目是\"{details['body']}\","
+            if details.get('body').strip():
+                query_part += f"题目是\"{details['body'].strip()}\","
+            else:
+                query_part += "题目参考该页内容,"
             query_part += "你应该结合题目给出一个答案,尽量简明扼要"
-            format_part += "[\"答案\"]"
+            format_part += "[\"主观题答案\"]"
         else:
             query_part += "其它题型,"
-            if details.get('body'):
-                query_part += f"题目是\"{details['body']}\","
+            if details.get('body').strip():
+                query_part += f"题目是\"{details['body'].strip()}\","
+            else:
+                query_part += "题目参考该页内容,"
             query_part += "请根据题目内容进行回答"
             format_part += "[\"合适答案\"]"
         query_parts.append(query_part)
         format_parts.append(format_part)
     if not query_parts or not format_parts:
         return ""
-    query = "这些是课程文件,请你先仔细阅读完所有内容,理解所有知识后,再进行后续操作.现在请你严谨准确地解答并只解答以下页码的题目:" + ",".join([str(p) for p in pages]) + "." + ";".join(query_parts) + "."
-    query += "解答完毕后可以得到一个字典,键是页码,值是选项列表(适用于单选题,多选题和投票题,单选题应给出含一个选项的列表,如[\"A\"];多选题应给出含一个或多个选项的列表,如[\"A\", \"B\"];投票题应给出含一至多个选项的列表,如[\"A\"])或答案列表(适用于填空题,主观题和其它题型,填空题应给出含答案数与空白数相等的列表,主观题应给出含一个答案的列表,其他题型给出含合适答案的列表),字典必须写成一行字符串.最终答案应该在该字符串前面和后面都加上5个\"~\"."
+    query = "这些是课程文件,请你先仔细阅读完所有内容,理解所有知识后,再严谨准确地解答并只解答以下页码的题目:" + ",".join([str(p) for p in pages]) + "." + ";".join(query_parts) + "."
+    query += "解答完毕后可以得到一个字典,键是页码,值是选项列表(适用于单选题,多选题和投票题,单选题应给出含一个选项的列表,如[\"A\"];多选题应给出含一个或多个选项的列表,如[\"A\", \"B\"];投票题应给出含合适个选项的列表,如[\"A\"])或答案列表(适用于填空题,主观题和其它题型,填空题应给出数量与填空处相等的答案的列表,主观题应给出含一个答案的列表,其他题型给出含合适答案的列表),字典必须写成一行字符串.最终答案应该在该字符串前面和后面都加上5个\"~\"."
     query += "最终答案格式可参照如下: ~~~~~{" + ", ".join(format_parts) + "}~~~~~ .按上述要求,请你给出并只给出最终答案."
     return query
 
@@ -403,7 +424,7 @@ def convert_answer_to_dict(answer, problems):
     correction_dict = {}
     if not answer:
         return correction_dict
-    new_answer = answer.replace('\\"', '"')
+    new_answer = answer.replace('\\"', '"').replace("\\n", " ").replace("\\t", " ").replace("\\r", " ")
     answer_dicts = re.findall(r'~\s*({.*?})\s*~', new_answer, re.DOTALL)
     pages = list(problems.keys())
     all_answers = {page: [] for page in pages}
@@ -429,7 +450,7 @@ def convert_answer_to_dict(answer, problems):
                         all_answers[page].append(options)
                 elif tp == 3:
                     if not isinstance(answer_dict[page], list):
-                        print(f"答案格式错误,第{page}页应为投票题,答案应为含一至多个选项的列表")
+                        print(f"答案格式错误,第{page}页应为投票题,答案应为含一个或多个选项的列表")
                         continue
                     options = [opt for opt in problems[page]['option_keys'] if opt in answer_dict[page]]
                     if options and len(options) <= problems[page]['pollingCount']:
@@ -438,17 +459,17 @@ def convert_answer_to_dict(answer, problems):
                     if not isinstance(answer_dict[page], list) or len(answer_dict[page]) != problems[page]["num_blanks"]:
                         print(f"答案格式错误,第{page}页应为填空题,答案应为含{problems[page].get('num_blanks', 1)}个答案的列表")
                         continue
-                    all_answers[page].append(answer_dict[page])
+                    all_answers[page].append([ans.strip() for ans in answer_dict[page]])
                 elif tp == 5:
                     if not isinstance(answer_dict[page], list) or len(answer_dict[page]) != 1:
                         print(f"答案格式错误,第{page}页应为主观题,答案应为含一个答案的列表")
                         continue
-                    all_answers[page].append(answer_dict[page])
+                    all_answers[page].append([ans.strip() for ans in answer_dict[page]])
                 else:
                     if not isinstance(answer_dict[page], list) or len(answer_dict[page]) < 1:
                         print(f"答案格式错误,第{page}页应为其它题型,答案应为含合适答案的列表")
                         continue
-                    all_answers[page].append(answer_dict[page])
+                    all_answers[page].append([ans.strip() for ans in answer_dict[page]])
         except Exception as e:
             print(f"答案格式错误,无法解析: {e}")
     for page in pages:
@@ -1030,7 +1051,7 @@ if __name__ == "__main__":
     for key in problems.keys():
         reply_text += "-"*20 + "\n"
         problemType = {1:"单选题", 2:"多选题", 3:"投票题", 4:"填空题", 5:"主观题"}.get(problems[key]['problemType'], "其它题型")
-        reply_text += f"PPT: 第{key}页 {problemType}\n"
+        reply_text += f"PPT: 第{key}页 {problemType} {problems[key].get('score', 0)}分\n"
         if reply['best_answer'].get(key):
             reply_text += f"最佳答案: {reply['best_answer'][key]}\n所有答案:\n"
             for r in reply["result"]:
