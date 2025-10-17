@@ -307,28 +307,29 @@ class yuketang:
                 else:
                     self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: 没有PPT")
 
-            if self.llm and problems:
+            if problems:
                 problems_keys = [int(k) for k in problems.keys()]
                 await loop.run_in_executor(None, concat_vertical_cv, folder_path, 0, 100)
                 await loop.run_in_executor(None, concat_vertical_cv, folder_path, 1, 100)
                 await loop.run_in_executor(None, concat_vertical_cv, folder_path, 2, 100)
                 await loop.run_in_executor(None, concat_vertical_cv, folder_path, 3, 100, problems_keys)
-                reply = await loop.run_in_executor(None, LLMManager().generateAnswer, folder_path)
-                reply_text = "LLM答案列表:\n"
-                for key in problems_keys:
-                    reply_text += "-"*20 + "\n"
-                    problemId = next((pid for pid, prob in self.lessonIdDict[lessonId]['problems'].items() if prob.get('index') == key), None)
-                    problemType = {1:"单选题", 2:"多选题", 3:"投票题", 4:"填空题", 5:"主观题"}.get(self.lessonIdDict[lessonId]['problems'][problemId]['problemType'], "其它题型")
-                    reply_text += f"PPT: 第{key}页 {problemType} {self.lessonIdDict[lessonId]['problems'][problemId].get('score', 0)}分\n"
-                    if reply['best_answer'].get(key):
-                        self.lessonIdDict[lessonId]['problems'][problemId]['llm_answer'] = reply['best_answer'][key]
-                        reply_text += f"最佳答案: {reply['best_answer'][key]}\n所有答案:\n"
-                        for r in reply["result"]:
-                            if r["answer_dict"].get(key):
-                                reply_text += f"[{r['score']}, {r['usedTime']}] {r['name']}: {r['answer_dict'][key]}\n"
-                    else:
-                        reply_text += f"无答案\n"
-                self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: {reply_text}")
+                if self.llm:
+                    reply = await loop.run_in_executor(None, LLMManager().generateAnswer, folder_path)
+                    reply_text = "LLM答案列表:\n"
+                    for key in problems_keys:
+                        reply_text += "-"*20 + "\n"
+                        problemId = next((pid for pid, prob in self.lessonIdDict[lessonId]['problems'].items() if prob.get('index') == key), None)
+                        problemType = {1:"单选题", 2:"多选题", 3:"投票题", 4:"填空题", 5:"主观题"}.get(self.lessonIdDict[lessonId]['problems'][problemId]['problemType'], "其它题型")
+                        reply_text += f"PPT: 第{key}页 {problemType} {self.lessonIdDict[lessonId]['problems'][problemId].get('score', 0)}分\n"
+                        if reply['best_answer'].get(key):
+                            self.lessonIdDict[lessonId]['problems'][problemId]['llm_answer'] = reply['best_answer'][key]
+                            reply_text += f"最佳答案: {reply['best_answer'][key]}\n所有答案:\n"
+                            for r in reply["result"]:
+                                if r["answer_dict"].get(key):
+                                    reply_text += f"[{r['score']}, {r['usedTime']}] {r['name']}: {r['answer_dict'][key]}\n"
+                        else:
+                            reply_text += f"无答案\n"
+                    self.msgmgr.sendMsg(f"{self.lessonIdDict[lessonId]['header']}\n消息: {reply_text}")
 
         asyncio.create_task(fetch_presentation_background())
 
