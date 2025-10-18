@@ -94,7 +94,7 @@ python main.py
 {
     "yuketang": {
         "domain": "pro.yuketang.cn",
-        "classroomCodeList": ["YVQ6QC", "7DEN3A"],
+        "classroomCodeList": ["JZOJ5C", "G84UAB"],
         "classroomWhiteList": [],
         "classroomBlackList": ["未央.机器学习", "未央.深度学习"],
         "classroomStartTimeDict": {
@@ -266,6 +266,137 @@ python main.py
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
+            },
+            {
+                "name": "moonshot-kimi-latest",
+                "enabled": false,
+                "type": "moonshot",
+                "apiKey": "####",
+                "model": "kimi-latest",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "volcengine-doubao-seed-1-6-vision",
+                "enabled": false,
+                "type": "volcengine",
+                "apiKey": "####",
+                "model": "doubao-seed-1-6-vision-250815",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "poloapi-gemini-2.5-flash",
+                "enabled": false,
+                "type": "poloapi",
+                "apiKey": "####",
+                "model": "gemini-2.5-flash",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "bailian-qwen3-vl-plus",
+                "enabled": false,
+                "type": "bailian",
+                "apiKey": "####",
+                "model": "qwen3-vl-plus",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "qianfan-ernie-4.5-turbo-vl-latest",
+                "enabled": false,
+                "type": "qianfan",
+                "apiKey": "####",
+                "model": "ernie-4.5-turbo-vl-latest",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "xunfei-xqwen2d5s32bvl",
+                "enabled": false,
+                "type": "xunfei",
+                "apiKey": "####",
+                "model": "xqwen2d5s32bvl",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "minimax-MiniMax-Text-01",
+                "enabled": false,
+                "type": "minimax",
+                "apiKey": "####",
+                "model": "MiniMax-Text-01",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "lingyiwanwu-yi-vision-v2",
+                "enabled": false,
+                "type": "lingyiwanwu",
+                "apiKey": "####",
+                "model": "yi-vision-v2",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "sensecore-SenseNova-V6-Pro",
+                "enabled": false,
+                "type": "sensecore",
+                "accessKeyId": "####",
+                "accessKeySecret": "####",
+                "model": "SenseNova-V6-Pro",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "mistral-mistral-small-latest",
+                "enabled": false,
+                "type": "mistral",
+                "apiKey": "####",
+                "model": "mistral-small-latest",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "hunyuan-hunyuan-t1-vision",
+                "enabled": false,
+                "type": "hunyuan",
+                "apiKey": "####",
+                "model": "hunyuan-t1-vision",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "meta-Llama-4-Maverick-17B-128E-Instruct-FP8",
+                "enabled": false,
+                "type": "meta",
+                "apiKey": "####",
+                "model": "Llama-4-Maverick-17B-128E-Instruct-FP8",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "cohere-command-a-vision-07-2025",
+                "enabled": false,
+                "type": "cohere",
+                "apiKey": "####",
+                "model": "command-a-vision-07-2025",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
             }
         ],
         "threads": 5,
@@ -292,7 +423,7 @@ python main.py
 
  - 答案已无法从雨课堂前端获取，现改用大语言模型生成
 
- - 自动答题支持单选题、多选题、投票题、填空题和主观题；若未获取到答案，将提交默认答案（可修改[此处](yuketang.py#L379-L390)）
+ - 自动答题支持单选题、多选题、投票题、填空题和主观题；若未获取到答案，将提交默认答案（可修改[此处](yuketang.py#L380-L391)）
 
  - 课程名可在雨课堂首页的课程标签里查找，具体如图中红框所示
 
@@ -434,7 +565,7 @@ python main.py
 <details>
 <summary><code>models</code></summary>
 
-大语言模型配置，目前支持 [OpenAI](https://platform.openai.com/docs/models)、[Claude](https://docs.claude.com/en/docs/about-claude/models/overview)、[Grok](https://docs.x.ai/docs/models)、[Gemini](https://ai.google.dev/gemini-api/docs/models)、[Cloudflare](https://developers.cloudflare.com/workers-ai/models/)、[OpenRouter](https://openrouter.ai/models)、[Poixe](https://poixe.com/model)、[硅基流动](https://cloud.siliconflow.cn/me/models)、[无问芯穹](https://cloud.infini-ai.com/genstudio/model)、[智谱](https://bigmodel.cn/console/modelcenter/square)、[DMXAPI](https://www.dmxapi.com/pricing)、[魔塔社区](https://modelscope.cn/models)等服务商或中转站
+大语言模型配置，目前支持 [OpenAI](https://platform.openai.com/docs/models)、[Claude](https://docs.claude.com/en/docs/about-claude/models/overview)、[Grok](https://docs.x.ai/docs/models)、[Gemini](https://ai.google.dev/gemini-api/docs/models)、[Cloudflare](https://developers.cloudflare.com/workers-ai/models/)、[OpenRouter](https://openrouter.ai/models)、[Poixe](https://poixe.com/model)、[硅基流动](https://cloud.siliconflow.cn/me/models)、[无问芯穹](https://cloud.infini-ai.com/genstudio/model)、[智谱](https://bigmodel.cn/console/modelcenter/square)、[DMXAPI](https://www.dmxapi.com/pricing)、[魔塔社区](https://modelscope.cn/models)、[月之暗面](https://platform.moonshot.cn/docs/pricing/chat)、[火山方舟](https://console.volcengine.com/ark/region:ark+cn-beijing/model)、[PoloAPI](https://poloapi.com/models)、[阿里云百炼](https://bailian.console.aliyun.com/?tab=model#/model-market)、[百度千帆](https://console.bce.baidu.com/qianfan/modelcenter/model/buildIn/list)、[讯飞星辰](https://maas.xfyun.cn/modelSquare)、[MiniMax](https://www.minimaxi.com/price)、[零一万物](https://platform.lingyiwanwu.com/)、[商汤大装置](https://console.sensecore.cn/aistudio/plaza)、[Mistral](https://mistral.ai/pricing#api-pricing)、[腾讯云](https://hunyuan.cloud.tencent.com/#/app/modelSquare)、[Meta](https://llama.developer.meta.com/docs/models)、[Cohere](https://docs.cohere.com/docs/models) 等服务商或中转站
 
 #### 通用字段
 | 字段 | 说明 |
@@ -457,7 +588,7 @@ python main.py
 
  - 尽量使用支持 PDF 文件或图片输入的多模态模型
 
- - 推荐使用 OpenAI、Claude、Gemini 等大厂模型
+ - 推荐使用 OpenAI、Claude、Gemini 等主流模型
 
  - 预置模型优先采用效果最好的免费模型
 
@@ -483,7 +614,7 @@ python main.py
 python llm.py
 ```
 
-若想测试其他课堂，可在使用程序签到该课堂、生成 PPT 文件夹后，修改 [PPT 编号](llm.py#L1046)
+若想测试其他课堂，可在使用程序签到该课堂、生成 PPT 文件夹后，修改 [PPT 编号](llm.py#L1332)
 
 </details>
 
