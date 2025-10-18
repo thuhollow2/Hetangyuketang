@@ -454,3 +454,91 @@ def concat_vertical_cv(folder, image_type, quality, questionList=[]):
 
         canvas.save(os.path.join(folder, "grid.jpg"), "JPEG", quality=int(quality), optimize=True)
         return
+
+    if image_type == 4:
+        n = len(files)
+        if n == 0:
+            return
+
+        k = 2
+        cell_w, cell_h = 0, 0
+        valid_files = []
+        for p in files:
+            try:
+                with Image.open(p) as im_src:
+                    w, h = im_src.size
+                new_w = max(1, int(w / k))
+                new_h = max(1, int(h / k))
+                cell_w = max(cell_w, new_w)
+                cell_h = max(cell_h, new_h)
+                valid_files.append((p, new_w, new_h))
+            except Exception as e:
+                print(f"跳过无法读取: {p} ({e})")
+
+        if not valid_files:
+            return
+
+        cols = math.ceil(math.sqrt(n) * 0.8)
+        gap = 30
+        rows = math.ceil(n / cols)
+        canvas_w = cols * cell_w + (cols - 1) * gap
+
+        full_rows = n // cols
+        last_row_count = n % cols
+        used_rows = full_rows + (1 if last_row_count else 0)
+        if used_rows == 0:
+            used_rows = 1
+        canvas_h = used_rows * cell_h + (used_rows - 1) * gap
+
+        canvas = Image.new("RGB", (canvas_w, canvas_h), (255, 255, 255))
+
+        for i, (p, new_w, new_h) in enumerate(valid_files):
+            stem = os.path.splitext(os.path.basename(p))[0][4:]
+            try:
+                with Image.open(p) as im_src:
+                    im = im_src.convert("RGB").resize((new_w, new_h), RESAMPLE)
+                txt = f"第{stem}页"
+                im = draw_cn_text_no_pillow(im, txt, 'top', k)
+                im = draw_cn_text_no_pillow(im, txt, 'middle', k)
+                im = draw_cn_text_no_pillow(im, txt, 'bottom', k)
+
+                row = i // cols
+                row_count = last_row_count if (row == full_rows and last_row_count) else cols
+                y = row * (cell_h + gap)
+                row_width = row_count * cell_w + (row_count - 1) * gap
+                start_x = 0 if row_count == cols else (canvas_w - row_width) // 2
+
+                col_in_row = i % cols if row_count == cols else i - full_rows * cols
+                x = start_x + col_in_row * (cell_w + gap)
+
+                x_im = x + (cell_w - im.width) // 2
+                y_im = y + (cell_h - im.height) // 2
+                canvas.paste(im, (x_im, y_im))
+            except Exception as e:
+                print(f"网格粘贴失败,跳过: {p} ({e})")
+
+        out_path = os.path.join(folder, "rect.jpg")
+        q = int(quality)
+        try:
+            canvas.save(out_path, "JPEG", quality=q, optimize=True)
+        except Exception as e:
+            print(f"保存rect失败(optimize=True),重试无优化: {e}")
+            try:
+                canvas.copy().save(out_path, "JPEG", quality=q)
+            except Exception as e2:
+                print(f"保存rect再次失败: {e2}")
+                return
+
+        max_bytes = 10 * 1024 * 1024
+        size_b = os.path.getsize(out_path)
+        while size_b > max_bytes and q >= 5:
+            q -= 4
+            try:
+                canvas.save(out_path, "JPEG", quality=q)
+                size_b = os.path.getsize(out_path)
+            except Exception as e:
+                print(f"降质重存失败: {e}")
+                break
+        if size_b > max_bytes and q < 5:
+            print("质量已降至最低, 仍无法满足10MB大小限制")
+        return
