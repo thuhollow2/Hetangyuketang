@@ -6,6 +6,8 @@ import math
 import time
 import re
 import ast
+import hmac
+import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -22,197 +24,14 @@ class LLMManager:
     def __init__(self):
         self.answers = []
 
-    def _generate_oa_answer(self, folder, query, config):
+    def _generate_answer(self, tp, folder, query, config):
         try:
             start = time.time()
-            answer = generate_oa_answer(query, folder, config)
-            end = time.time()
-            usedTime = f"{end - start:.2f}s"
-            if answer: self.answers.append({
-                "name": config['name'],
-                "type": config['type'],
-                "model": config['model'],
-                "score": config['score'],
-                "usedTime": usedTime,
-                "answer": answer
-            })
-        except:
-            pass
-
-    def _generate_cl_answer(self, folder, query, config):
-        try:
-            start = time.time()
-            answer = generate_cl_answer(query, folder, config)
-            end = time.time()
-            usedTime = f"{end - start:.2f}s"
-            if answer: self.answers.append({
-                "name": config['name'],
-                "type": config['type'],
-                "model": config['model'],
-                "score": config['score'],
-                "usedTime": usedTime,
-                "answer": answer
-            })
-        except:
-            pass
-
-    def _generate_gk_answer(self, folder, query, config):
-        try:
-            start = time.time()
-            answer = generate_gk_answer(query, folder, config)
-            end = time.time()
-            usedTime = f"{end - start:.2f}s"
-            if answer: self.answers.append({
-                "name": config['name'],
-                "type": config['type'],
-                "model": config['model'],
-                "score": config['score'],
-                "usedTime": usedTime,
-                "answer": answer
-            })
-        except:
-            pass
-
-    def _generate_gm_answer(self, folder, query, config):
-        try:
-            start = time.time()
-            answer = generate_gm_answer(query, folder, config)
-            end = time.time()
-            usedTime = f"{end - start:.2f}s"
-            if answer: self.answers.append({
-                "name": config['name'],
-                "type": config['type'],
-                "model": config['model'],
-                "score": config['score'],
-                "usedTime": usedTime,
-                "answer": answer
-            })
-        except:
-            pass
-
-    def _generate_cf_answer(self, folder, query, config):
-        try:
-            start = time.time()
-            answer = generate_cf_answer(query, folder, config)
-            end = time.time()
-            usedTime = f"{end - start:.2f}s"
-            if answer: self.answers.append({
-                "name": config['name'],
-                "type": config['type'],
-                "model": config['model'],
-                "score": config['score'],
-                "usedTime": usedTime,
-                "answer": answer
-            })
-        except:
-            pass
-
-    def _generate_ot_answer(self, folder, query, config):
-        try:
-            start = time.time()
-            answer = generate_ot_answer(query, folder, config)
-            end = time.time()
-            usedTime = f"{end - start:.2f}s"
-            if answer: self.answers.append({
-                "name": config['name'],
-                "type": config['type'],
-                "model": config['model'],
-                "score": config['score'],
-                "usedTime": usedTime,
-                "answer": answer
-            })
-        except:
-            pass
-
-    def _generate_px_answer(self, folder, query, config):
-        try:
-            start = time.time()
-            answer = generate_px_answer(query, folder, config)
-            end = time.time()
-            usedTime = f"{end - start:.2f}s"
-            if answer: self.answers.append({
-                "name": config['name'],
-                "type": config['type'],
-                "model": config['model'],
-                "score": config['score'],
-                "usedTime": usedTime,
-                "answer": answer
-            })
-        except:
-            pass
-
-    def _generate_sf_answer(self, folder, query, config):
-        try:
-            start = time.time()
-            answer = generate_sf_answer(query, folder, config)
-            end = time.time()
-            usedTime = f"{end - start:.2f}s"
-            if answer: self.answers.append({
-                "name": config['name'],
-                "type": config['type'],
-                "model": config['model'],
-                "score": config['score'],
-                "usedTime": usedTime,
-                "answer": answer
-            })
-        except:
-            pass
-
-    def _generate_ig_answer(self, folder, query, config):
-        try:
-            start = time.time()
-            answer = generate_ig_answer(query, folder, config)
-            end = time.time()
-            usedTime = f"{end - start:.2f}s"
-            if answer: self.answers.append({
-                "name": config['name'],
-                "type": config['type'],
-                "model": config['model'],
-                "score": config['score'],
-                "usedTime": usedTime,
-                "answer": answer
-            })
-        except:
-            pass
-
-    def _generate_zp_answer(self, folder, query, config):
-        try:
-            start = time.time()
-            answer = generate_zp_answer(query, folder, config)
-            end = time.time()
-            usedTime = f"{end - start:.2f}s"
-            if answer: self.answers.append({
-                "name": config['name'],
-                "type": config['type'],
-                "model": config['model'],
-                "score": config['score'],
-                "usedTime": usedTime,
-                "answer": answer
-            })
-        except:
-            pass
-
-    def _generate_dm_answer(self, folder, query, config):
-        try:
-            start = time.time()
-            answer = generate_dm_answer(query, folder, config)
-            end = time.time()
-            usedTime = f"{end - start:.2f}s"
-            if answer: self.answers.append({
-                "name": config['name'],
-                "type": config['type'],
-                "model": config['model'],
-                "score": config['score'],
-                "usedTime": usedTime,
-                "answer": answer
-            })
-        except:
-            pass
-
-    def _generate_ms_answer(self, folder, query, config):
-        try:
-            start = time.time()
-            answer = generate_ms_answer(query, folder, config)
+            func = globals().get(f"generate_{tp}_answer")
+            if not callable(func):
+                print(f"未知类型: {tp}")
+                return
+            answer = func(query, folder, config)
             end = time.time()
             usedTime = f"{end - start:.2f}s"
             if answer: self.answers.append({
@@ -232,37 +51,8 @@ class LLMManager:
             problems = ast.literal_eval(f.read().strip())
         query = convert_problems_to_query(problems)
         if not query: return reply
-        tasks = []
         with ThreadPoolExecutor(max_workers=threads) as pool:
-            for m in [m for m in models if m['enabled']]:
-                tp = m['type']
-                if tp == 'openai':
-                    tasks.append(pool.submit(self._generate_oa_answer, folder, query, m))
-                elif tp == 'claude':
-                    tasks.append(pool.submit(self._generate_cl_answer, folder, query, m))
-                elif tp == 'grok':
-                    tasks.append(pool.submit(self._generate_gk_answer, folder, query, m))
-                elif tp == 'gemini':
-                    tasks.append(pool.submit(self._generate_gm_answer, folder, query, m))
-                elif tp == 'cloudflare':
-                    tasks.append(pool.submit(self._generate_cf_answer, folder, query, m))
-                elif tp == 'openrouter':
-                    tasks.append(pool.submit(self._generate_ot_answer, folder, query, m))
-                elif tp == 'poixe':
-                    tasks.append(pool.submit(self._generate_px_answer, folder, query, m))
-                elif tp == 'siliconflow':
-                    tasks.append(pool.submit(self._generate_sf_answer, folder, query, m))
-                elif tp == 'infinigence':
-                    tasks.append(pool.submit(self._generate_ig_answer, folder, query, m))
-                elif tp == 'zhipu':
-                    tasks.append(pool.submit(self._generate_zp_answer, folder, query, m))
-                elif tp == 'dmxapi':
-                    tasks.append(pool.submit(self._generate_dm_answer, folder, query, m))
-                elif tp == 'modelscope':
-                    tasks.append(pool.submit(self._generate_ms_answer, folder, query, m))
-                else:
-                    continue
-
+            tasks = [pool.submit(self._generate_answer, m['type'], folder, query, m) for m in models if m['enabled']]
             for future in as_completed(tasks):
                 try:
                     future.result()
@@ -416,7 +206,7 @@ def convert_problems_to_query(problems):
     if not query_parts or not format_parts:
         return ""
     query = "这些是课程文件,请你先仔细阅读完所有内容,理解所有知识后,再严谨准确地解答并只解答以下页码的题目:" + ",".join([str(p) for p in pages]) + "." + ";".join(query_parts) + "."
-    query += "解答完毕后可以得到一个字典,键是页码,值是选项列表(适用于单选题,多选题和投票题,单选题应给出只含一个选项的列表,如[\"A\"];多选题应给出含一个或多个选项的列表,如[\"A\", \"B\"];投票题应给出含合适个选项的列表,如[\"A\"])或答案列表(适用于填空题,主观题和其它题型,填空题应给出数量与填空处相等的答案的列表,主观题应给出只含一个答案的列表,其他题型给出含合适答案的列表),字典必须写成一行字符串.最终答案应该在该字符串前面和后面都加上5个\"~\"."
+    query += "解答完毕后可以得到一个字典,键是页码,值是选项列表(适用于单选题,多选题和投票题,单选题应给出只含一个选项的列表,如[\"A\"];多选题应给出含一个或多个选项的列表,如[\"A\", \"B\"];投票题应给出含合适个选项的列表,如[\"A\"])或答案列表(适用于填空题,主观题和其它题型,填空题应给出数量与填空处相等的答案的列表,主观题应给出只含一个答案的列表,其他题型给出含合适答案的列表),字典必须写成一行字符串.最终答案必须在该字符串前面和后面都加上5个\"~\"."
     query += "最终答案格式可参照如下: ~~~~~{" + ", ".join(format_parts) + "}~~~~~ .按上述要求,请你给出并只给出最终答案."
     return query
 
@@ -426,6 +216,8 @@ def convert_answer_to_dict(answer, problems):
         return correction_dict
     new_answer = answer.replace('\\"', '"').replace("\\n", " ").replace("\\t", " ").replace("\\r", " ")
     answer_dicts = re.findall(r'~\s*({.*?})\s*~', new_answer, re.DOTALL)
+    if not answer_dicts:
+        answer_dicts = re.findall(r'({.*?})', new_answer, re.DOTALL)
     pages = list(problems.keys())
     all_answers = {page: [] for page in pages}
     for a in answer_dicts:
@@ -498,7 +290,7 @@ def convert_answer_to_dict(answer, problems):
             correction_dict[page] = new_list
     return correction_dict
 
-def upload_oa_file(folder, config):
+def upload_openai_file(folder, config):
     files = [f for f in os.listdir(folder) if f.lower().endswith('.pdf')]
     if not files:
         print("没有PDF文件")
@@ -522,8 +314,8 @@ def upload_oa_file(folder, config):
         print(f"OpenAI文件上传发生错误: {e}")
         return None
 
-def generate_oa_answer(query, folder, config):
-    file_id = upload_oa_file(folder, config)
+def generate_openai_answer(query, folder, config):
+    file_id = upload_openai_file(folder, config)
     if not file_id:
         return None
     content = [
@@ -551,7 +343,7 @@ def generate_oa_answer(query, folder, config):
         return None
     return text
 
-def upload_cl_file(folder, config):
+def upload_claude_file(folder, config):
     files = [f for f in os.listdir(folder) if f.lower().endswith('.pdf')]
     if not files:
         print("没有PDF文件")
@@ -574,8 +366,8 @@ def upload_cl_file(folder, config):
         print(f"Claude文件上传发生错误: {e}")
         return None
 
-def generate_cl_answer(query, folder, config):
-    file_id = upload_cl_file(folder, config)
+def generate_claude_answer(query, folder, config):
+    file_id = upload_claude_file(folder, config)
     if not file_id:
         return None
     content = [
@@ -609,7 +401,7 @@ def generate_cl_answer(query, folder, config):
         return None
     return text
 
-def generate_gk_answer(query, folder, config):
+def generate_grok_answer(query, folder, config):
     files = [f for f in os.listdir(folder)
                    if f.lower().endswith('.jpg') and f.lower().startswith('mark_') and os.path.splitext(f)[0][5:].isdigit()]
     files.sort(key=lambda x: int(os.path.splitext(x)[0][5:]))
@@ -645,7 +437,7 @@ def generate_gk_answer(query, folder, config):
         return None
     return text
 
-def upload_gm_file(folder, config):
+def upload_gemini_file(folder, config):
     files = [f for f in os.listdir(folder) if f.lower().endswith('.pdf')]
     if not files:
         print("没有PDF文件")
@@ -678,8 +470,8 @@ def upload_gm_file(folder, config):
         print(f"Gemini文件上传发生错误: {e}")
         return None
 
-def generate_gm_answer(query, folder, config):
-    file_uri = upload_gm_file(folder, config)
+def generate_gemini_answer(query, folder, config):
+    file_uri = upload_gemini_file(folder, config)
     if not file_uri:
         return None
     parts = [
@@ -704,7 +496,7 @@ def generate_gm_answer(query, folder, config):
         return None
     return text
 
-def generate_cf_answer(query, folder, config):
+def generate_cloudflare_answer(query, folder, config):
     files = [f for f in os.listdir(folder)
                    if f.lower().endswith('.jpg') and f.lower().startswith('resized_') and os.path.splitext(f)[0][8:].isdigit()]
     files.sort(key=lambda x: int(os.path.splitext(x)[0][8:]))
@@ -800,7 +592,7 @@ def generate_cf_answer(query, folder, config):
         return None
     return text
 
-def generate_ot_answer(query, folder, config):
+def generate_openrouter_answer(query, folder, config):
     files = [f for f in os.listdir(folder) if f.lower().endswith('.pdf')]
     if not files:
         print("没有PDF文件")
@@ -836,7 +628,7 @@ def generate_ot_answer(query, folder, config):
         return None
     return text
 
-def generate_px_answer(query, folder, config):
+def generate_poixe_answer(query, folder, config):
     filepath = os.path.join(folder, "long.jpg")
     if not os.path.exists(filepath):
         print(f"文件 {filepath} 不存在")
@@ -870,7 +662,7 @@ def generate_px_answer(query, folder, config):
         return None
     return text
 
-def generate_sf_answer(query, folder, config):
+def generate_siliconflow_answer(query, folder, config):
     filepath = os.path.join(folder, "long.jpg")
     if not os.path.exists(filepath):
         print(f"文件 {filepath} 不存在")
@@ -904,7 +696,7 @@ def generate_sf_answer(query, folder, config):
         return None
     return text
 
-def generate_ig_answer(query, folder, config):
+def generate_infinigence_answer(query, folder, config):
     filepath = os.path.join(folder, "long.jpg")
     if not os.path.exists(filepath):
         print(f"文件 {filepath} 不存在")
@@ -938,7 +730,7 @@ def generate_ig_answer(query, folder, config):
         return None
     return text
 
-def generate_zp_answer(query, folder, config):
+def generate_zhipu_answer(query, folder, config):
     filepath = os.path.join(folder, "long.jpg")
     if not os.path.exists(filepath):
         print(f"文件 {filepath} 不存在")
@@ -972,7 +764,7 @@ def generate_zp_answer(query, folder, config):
         return None
     return text
 
-def generate_dm_answer(query, folder, config):
+def generate_dmxapi_answer(query, folder, config):
     filepath = os.path.join(folder, "long.jpg")
     if not os.path.exists(filepath):
         print(f"文件 {filepath} 不存在")
@@ -1008,7 +800,7 @@ def generate_dm_answer(query, folder, config):
         return None
     return text
 
-def generate_ms_answer(query, folder, config):
+def generate_modelscope_answer(query, folder, config):
     filepath = os.path.join(folder, "long.jpg")
     if not os.path.exists(filepath):
         print(f"文件 {filepath} 不存在")
@@ -1039,6 +831,500 @@ def generate_ms_answer(query, folder, config):
         text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
     except Exception as e:
         print(f"ModelScope生成回答发生错误: {e}")
+        return None
+    return text
+
+def generate_moonshot_answer(query, folder, config):
+    filepath = os.path.join(folder, "long.jpg")
+    if not os.path.exists(filepath):
+        print(f"文件 {filepath} 不存在")
+        return None
+    with open(filepath, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("utf-8")
+    data_uri = f"data:image/jpeg;base64,{b64}"
+    content = [
+        {"type": "text", "text": query},
+        {"type": "image_url", "image_url": {"url": data_uri}}
+    ]
+    headers = {
+        "Authorization": f"Bearer {config['apiKey']}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": config['model'],
+        "temperature": config['temperature'],
+        "max_tokens": 10000,
+        "messages": []
+    }
+    if config['prompt']:
+        payload["messages"].append({"role": "system", "content": config['prompt']})
+    payload["messages"].append({"role": "user", "content": content})
+    try:
+        r = requests.post("https://api.moonshot.cn/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r.raise_for_status()
+        text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
+    except Exception as e:
+        print(f"Moonshot生成回答发生错误: {e}")
+        return None
+    return text
+
+def generate_volcengine_answer(query, folder, config):
+    filepath = os.path.join(folder, "long.jpg")
+    if not os.path.exists(filepath):
+        print(f"文件 {filepath} 不存在")
+        return None
+    with open(filepath, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("utf-8")
+    data_uri = f"data:image/jpeg;base64,{b64}"
+    content = [
+        {"type": "text", "text": query},
+        {"type": "image_url", "image_url": {"url": data_uri}}
+    ]
+    headers = {
+        "Authorization": f"Bearer {config['apiKey']}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": config['model'],
+        "temperature": config['temperature'],
+        "max_tokens": 10000,
+        "thinking": {
+            "type": "enabled"
+        },
+        "messages": []
+    }
+    if config['prompt']:
+        payload["messages"].append({"role": "system", "content": config['prompt']})
+    payload["messages"].append({"role": "user", "content": content})
+    try:
+        r = requests.post("https://ark.cn-beijing.volces.com/api/v3/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r.raise_for_status()
+        text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
+    except Exception as e:
+        print(f"Volcengine生成回答发生错误: {e}")
+        return None
+    return text
+
+def generate_poloapi_answer(query, folder, config):
+    files = [f for f in os.listdir(folder) if f.lower().endswith('.pdf')]
+    if not files:
+        print("没有PDF文件")
+        return None
+    filepath = os.path.join(folder, files[0])
+    with open(filepath, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("utf-8")
+    data_uri = f"data:application/pdf;base64,{b64}"
+    content = [
+        {"type": "text", "text": query},
+        {"type": "file", "file": {"filename": os.path.basename(filepath), "file_data": data_uri}}
+    ]
+    headers = {
+        "Authorization": f"Bearer {config['apiKey']}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": config['model'],
+        "temperature": config['temperature'],
+        "max_tokens": 10000,
+        "messages": []
+    }
+    if config['prompt']:
+        payload["messages"].append({"role": "system", "content": config['prompt']})
+    payload["messages"].append({"role": "user", "content": content})
+    try:
+        r = requests.post("https://poloai.top/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r.raise_for_status()
+        text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
+    except Exception as e:
+        print(f"PoloAPI生成回答发生错误: {e}")
+        return None
+    return text
+
+def generate_bailian_answer(query, folder, config):
+    filepath = os.path.join(folder, "long.jpg")
+    if not os.path.exists(filepath):
+        print(f"文件 {filepath} 不存在")
+        return None
+    with open(filepath, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("utf-8")
+    data_uri = f"data:image/jpeg;base64,{b64}"
+    content = [
+        {"type": "text", "text": query},
+        {"type": "image_url", "image_url": {"url": data_uri}}
+    ]
+    headers = {
+        "Authorization": f"Bearer {config['apiKey']}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": config['model'],
+        "temperature": config['temperature'],
+        "max_tokens": 10000,
+        "enable_thinking": True,
+        "messages": []
+    }
+    if config['prompt']:
+        payload["messages"].append({"role": "system", "content": config['prompt']})
+    payload["messages"].append({"role": "user", "content": content})
+    try:
+        r = requests.post("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r.raise_for_status()
+        text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
+    except Exception as e:
+        print(f"BaiLian生成回答发生错误: {e}")
+        return None
+    return text
+
+def generate_qianfan_answer(query, folder, config):
+    filepath = os.path.join(folder, "long.jpg")
+    if not os.path.exists(filepath):
+        print(f"文件 {filepath} 不存在")
+        return None
+    with open(filepath, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("utf-8")
+    data_uri = f"data:image/jpeg;base64,{b64}"
+    content = [
+        {"type": "text", "text": query},
+        {"type": "image_url", "image_url": {"url": data_uri}}
+    ]
+    headers = {
+        "Authorization": f"Bearer {config['apiKey']}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": config['model'],
+        "temperature": config['temperature'],
+        "max_tokens": 10000,
+        "enable_thinking": True,
+        "messages": []
+    }
+    if config['prompt']:
+        payload["messages"].append({"role": "system", "content": config['prompt']})
+    payload["messages"].append({"role": "user", "content": content})
+    try:
+        r = requests.post("https://qianfan.baidubce.com/v2/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r.raise_for_status()
+        text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
+    except Exception as e:
+        print(f"QianFan生成回答发生错误: {e}")
+        return None
+    return text
+
+def generate_xunfei_answer(query, folder, config):
+    filepath = os.path.join(folder, "long.jpg")
+    if not os.path.exists(filepath):
+        print(f"文件 {filepath} 不存在")
+        return None
+    with open(filepath, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("utf-8")
+    data_uri = f"data:image/jpeg;base64,{b64}"
+    content = [
+        {"type": "text", "text": query},
+        {"type": "image_url", "image_url": {"url": data_uri}}
+    ]
+    headers = {
+        "Authorization": f"Bearer {config['apiKey']}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": config['model'],
+        "temperature": config['temperature'],
+        "max_tokens": 8192,
+        "messages": []
+    }
+    if config['prompt']:
+        payload["messages"].append({"role": "system", "content": config['prompt']})
+    payload["messages"].append({"role": "user", "content": content})
+    try:
+        r = requests.post("https://maas-api.cn-huabei-1.xf-yun.com/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r.raise_for_status()
+        text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
+    except Exception as e:
+        print(f"XunFei生成回答发生错误: {e}")
+        return None
+    return text
+
+def generate_minimax_answer(query, folder, config):
+    filepath = os.path.join(folder, "long.jpg")
+    if not os.path.exists(filepath):
+        print(f"文件 {filepath} 不存在")
+        return None
+    with open(filepath, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("utf-8")
+    data_uri = f"data:image/jpeg;base64,{b64}"
+    content = [
+        {"type": "text", "text": query},
+        {"type": "image_url", "image_url": {"url": data_uri}}
+    ]
+    headers = {
+        "Authorization": f"Bearer {config['apiKey']}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": config['model'],
+        "temperature": config['temperature'],
+        "max_tokens": 10000,
+        "messages": []
+    }
+    if config['prompt']:
+        payload["messages"].append({"role": "system", "content": config['prompt']})
+    payload["messages"].append({"role": "user", "content": content})
+    try:
+        r = requests.post("https://api.minimaxi.com/v1/text/chatcompletion_v2", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r.raise_for_status()
+        text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
+    except Exception as e:
+        print(f"Minimax生成回答发生错误: {e}")
+        return None
+    return text
+
+def generate_lingyiwanwu_answer(query, folder, config):
+    filepath = os.path.join(folder, "long.jpg")
+    if not os.path.exists(filepath):
+        print(f"文件 {filepath} 不存在")
+        return None
+    with open(filepath, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("utf-8")
+    data_uri = f"data:image/jpeg;base64,{b64}"
+    content = [
+        {"type": "text", "text": query},
+        {"type": "image_url", "image_url": {"url": data_uri}}
+    ]
+    headers = {
+        "Authorization": f"Bearer {config['apiKey']}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": config['model'],
+        "temperature": config['temperature'],
+        "max_tokens": 10000,
+        "messages": []
+    }
+    if config['prompt']:
+        payload["messages"].append({"role": "system", "content": config['prompt']})
+    payload["messages"].append({"role": "user", "content": content})
+    try:
+        r = requests.post("https://api.lingyiwanwu.com/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r.raise_for_status()
+        text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
+    except Exception as e:
+        print(f"LingYiWanWu生成回答发生错误: {e}")
+        return None
+    return text
+
+def get_sensecore_access_token(config):
+    now = int(time.time())
+    header_json = json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(',', ':'), ensure_ascii=False).encode()
+    payload_json = json.dumps(
+        {"iss": config['accessKeyId'], "exp": now + 1800, "nbf": now - 5},
+        separators=(',', ':'), ensure_ascii=False
+    ).encode()
+    header_b64 = base64.urlsafe_b64encode(header_json).rstrip(b'=').decode()
+    payload_b64 = base64.urlsafe_b64encode(payload_json).rstrip(b'=').decode()
+    signing_input = (header_b64 + "." + payload_b64).encode()
+    sig = hmac.new(config['accessKeySecret'].encode(), signing_input, hashlib.sha256).digest()
+    sig_b64 = base64.urlsafe_b64encode(sig).rstrip(b'=').decode()
+    return header_b64 + "." + payload_b64 + "." + sig_b64
+
+def generate_sensecore_answer(query, folder, config):
+    access_token = get_sensecore_access_token(config)
+    filepath = os.path.join(folder, "rect.jpg")
+    if not os.path.exists(filepath):
+        print(f"文件 {filepath} 不存在")
+        return None
+    with open(filepath, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode('ascii')
+    content = [
+        {"type": "text", "text": query},
+        {"type": "image_base64", "image_base64": b64}
+    ]
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": config['model'],
+        "temperature": config['temperature'],
+        "max_new_tokens": 10000,
+        "thinking": {
+            "enabled": True
+        },
+        "messages": []
+    }
+    if config['prompt']:
+        payload["messages"].append({"role": "system", "content": [{"type": "text", "text": config['prompt']}]})
+    payload["messages"].append({"role": "user", "content": content})
+    try:
+        r = requests.post("https://api.sensenova.cn/v1/llm/chat-completions", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r.raise_for_status()
+        text = r.json().get("data", {}).get("choices", [{}])[0].get("message", {})
+    except Exception as e:
+        print(f"SenseCore生成回答发生错误: {e}")
+        return None
+    return text
+
+def upload_mistral_file(folder, config):
+    files = [f for f in os.listdir(folder) if f.lower().endswith('.pdf')]
+    if not files:
+        print("没有PDF文件")
+        return None
+    filepath = os.path.join(folder, files[0])
+    with open(filepath, "rb") as f:
+        files ={
+            "file": (os.path.basename(filepath), f.read(), "application/pdf")
+        }
+    data = {
+        "purpose": "ocr"
+    }
+    headers = {
+        "Authorization": f"Bearer {config['apiKey']}"
+    }
+    try:
+        r = requests.post(f"https://api.mistral.ai/v1/files", headers=headers, files=files, data=data, timeout=timeout)
+        r.raise_for_status()
+        return r.json()["id"]
+    except Exception as e:
+        print(f"Mistral文件上传发生错误: {e}")
+        return None
+    
+def generate_mistral_answer(query, folder, config):
+    file_id = upload_mistral_file(folder, config)
+    if not file_id:
+        return None
+    headers = {
+        "Authorization": f"Bearer {config['apiKey']}",
+        "Content-Type": "application/json"
+    }
+    try:
+        r = requests.get(f"https://api.mistral.ai/v1/files/{file_id}/url?expiry=24", headers=headers, timeout=timeout)
+        r.raise_for_status()
+        file_url = r.json().get("url", '')
+    except Exception as e:
+        print(f"Mistral获取文件信息发生错误: {e}")
+        return None
+
+    content = [
+        {"type": "text", "text": query},
+        {"type": "document_url", "document_url": file_url}
+    ]
+    payload = {
+        "model": config['model'],
+        "temperature": config['temperature'],
+        "max_tokens": 10000,
+        "messages": []
+    }
+    if config['prompt']:
+        payload["messages"].append({"role": "system", "content": config['prompt']})
+    payload["messages"].append({"role": "user", "content": content})
+    try:
+        r = requests.post("https://api.mistral.ai/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r.raise_for_status()
+        text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
+    except Exception as e:
+        print(f"Mistral生成回答发生错误: {e}")
+        return None
+    return text
+
+def generate_hunyuan_answer(query, folder, config):
+    filepath = os.path.join(folder, "long.jpg")
+    if not os.path.exists(filepath):
+        print(f"文件 {filepath} 不存在")
+        return None
+    with open(filepath, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("utf-8")
+    data_uri = f"data:image/jpeg;base64,{b64}"
+    content = [
+        {"type": "text", "text": query},
+        {"type": "image_url", "image_url": {"url": data_uri}}
+    ]
+    headers = {
+        "Authorization": f"Bearer {config['apiKey']}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": config['model'],
+        "temperature": config['temperature'],
+        "max_tokens": 10000,
+        "enable_enhancement": True,
+        "messages": []
+    }
+    if config['prompt']:
+        payload["messages"].append({"role": "system", "content": config['prompt']})
+    payload["messages"].append({"role": "user", "content": content})
+    try:
+        r = requests.post("https://api.hunyuan.cloud.tencent.com/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r.raise_for_status()
+        text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
+    except Exception as e:
+        print(f"HunYuan生成回答发生错误: {e}")
+        return None
+    return text
+
+def generate_meta_answer(query, folder, config):
+    filepath = os.path.join(folder, "long.jpg")
+    if not os.path.exists(filepath):
+        print(f"文件 {filepath} 不存在")
+        return None
+    with open(filepath, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("utf-8")
+    data_uri = f"data:image/jpeg;base64,{b64}"
+    content = [
+        {"type": "text", "text": query},
+        {"type": "image_url", "image_url": {"url": data_uri}}
+    ]
+    headers = {
+        "Authorization": f"Bearer {config['apiKey']}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": config['model'],
+        "temperature": config['temperature'],
+        "max_completion_tokens": 10000,
+        "messages": []
+    }
+    if config['prompt']:
+        payload["messages"].append({"role": "system", "content": config['prompt']})
+    payload["messages"].append({"role": "user", "content": content})
+    try:
+        r = requests.post("https://api.llama.com/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r.raise_for_status()
+        text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
+    except Exception as e:
+        print(f"Meta生成回答发生错误: {e}")
+        return None
+    return text
+
+def generate_cohere_answer(query, folder, config):
+    filepath = os.path.join(folder, "long.jpg")
+    if not os.path.exists(filepath):
+        print(f"文件 {filepath} 不存在")
+        return None
+    with open(filepath, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("utf-8")
+    data_uri = f"data:image/jpeg;base64,{b64}"
+    content = [
+        {"type": "text", "text": query},
+        {"type": "image_url", "image_url": {"url": data_uri}}
+    ]
+    headers = {
+        "Authorization": f"Bearer {config['apiKey']}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": config['model'],
+        "temperature": config['temperature'],
+        "max_tokens": 10000,
+        "messages": []
+    }
+    if config['prompt']:
+        payload["messages"].append({"role": "system", "content": config['prompt']})
+    payload["messages"].append({"role": "user", "content": content})
+    try:
+        r = requests.post("https://api.cohere.ai/compatibility/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r.raise_for_status()
+        text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
+    except Exception as e:
+        print(f"Cohere生成回答发生错误: {e}")
         return None
     return text
 
