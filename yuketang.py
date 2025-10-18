@@ -341,6 +341,7 @@ class yuketang:
                 await loop.run_in_executor(None, concat_vertical_cv, folder_path, 1, 100)
                 await loop.run_in_executor(None, concat_vertical_cv, folder_path, 2, 100)
                 await loop.run_in_executor(None, concat_vertical_cv, folder_path, 3, 100, problems_keys)
+                await loop.run_in_executor(None, concat_vertical_cv, folder_path, 4, 100)
                 if self.llm:
                     reply = await loop.run_in_executor(None, LLMManager().generateAnswer, folder_path)
                     reply_text = "LLM答案列表:\n"
