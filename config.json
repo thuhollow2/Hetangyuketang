@@ -173,6 +173,137 @@
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
+            },
+            {
+                "name": "moonshot-kimi-latest",
+                "enabled": false,
+                "type": "moonshot",
+                "apiKey": "####",
+                "model": "kimi-latest",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "volcengine-doubao-seed-1-6-vision",
+                "enabled": false,
+                "type": "volcengine",
+                "apiKey": "####",
+                "model": "doubao-seed-1-6-vision-250815",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "poloapi-gemini-2.5-flash",
+                "enabled": false,
+                "type": "poloapi",
+                "apiKey": "####",
+                "model": "gemini-2.5-flash",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "bailian-qwen3-vl-plus",
+                "enabled": false,
+                "type": "bailian",
+                "apiKey": "####",
+                "model": "qwen3-vl-plus",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "qianfan-ernie-4.5-turbo-vl-latest",
+                "enabled": false,
+                "type": "qianfan",
+                "apiKey": "####",
+                "model": "ernie-4.5-turbo-vl-latest",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "xunfei-xqwen2d5s32bvl",
+                "enabled": false,
+                "type": "xunfei",
+                "apiKey": "####",
+                "model": "xqwen2d5s32bvl",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "minimax-MiniMax-Text-01",
+                "enabled": false,
+                "type": "minimax",
+                "apiKey": "####",
+                "model": "MiniMax-Text-01",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "lingyiwanwu-yi-vision-v2",
+                "enabled": false,
+                "type": "lingyiwanwu",
+                "apiKey": "####",
+                "model": "yi-vision-v2",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "sensecore-SenseNova-V6-Pro",
+                "enabled": false,
+                "type": "sensecore",
+                "accessKeyId": "####",
+                "accessKeySecret": "####",
+                "model": "SenseNova-V6-Pro",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "mistral-mistral-small-latest",
+                "enabled": false,
+                "type": "mistral",
+                "apiKey": "####",
+                "model": "mistral-small-latest",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "hunyuan-hunyuan-t1-vision",
+                "enabled": false,
+                "type": "hunyuan",
+                "apiKey": "####",
+                "model": "hunyuan-t1-vision",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "meta-Llama-4-Maverick-17B-128E-Instruct-FP8",
+                "enabled": false,
+                "type": "meta",
+                "apiKey": "####",
+                "model": "Llama-4-Maverick-17B-128E-Instruct-FP8",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
+            },
+            {
+                "name": "cohere-command-a-vision-07-2025",
+                "enabled": false,
+                "type": "cohere",
+                "apiKey": "####",
+                "model": "command-a-vision-07-2025",
+                "prompt": "You are a helpful assistant.",
+                "temperature": 0.2,
+                "score": 100
             }
         ],
         "threads": 5,
@@ -184,4 +315,5 @@
         "timeout": 30
     }
 }
+
 
