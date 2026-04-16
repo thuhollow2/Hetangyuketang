@@ -200,101 +200,102 @@ python main.py
     "llm": {
         "models": [
             {
-                "name": "openai-o4-mini",
+                "name": "openai-gpt-5.4",
                 "enabled": false,
                 "type": "openai",
                 "apiKey": "####",
-                "model": "o4-mini",
+                "model": "gpt-5.4",
                 "prompt": "You are a helpful assistant.",
+                "temperature": 1,
                 "score": 100
             },
             {
-                "name": "claude-3-5",
+                "name": "claude-opus-4-6",
                 "enabled": false,
                 "type": "claude",
                 "apiKey": "####",
-                "model": "claude-3-5",
+                "model": "claude-opus-4-6",
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
             },
             {
-                "name": "grok-4-0709",
+                "name": "grok-4.20-0309-reasoning",
                 "enabled": false,
                 "type": "grok",
                 "apiKey": "####",
-                "model": "grok-4-0709",
+                "model": "grok-4.20-0309-reasoning",
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
             },
             {
-                "name": "gemini-2.5-flash",
+                "name": "gemini-3-flash-preview",
                 "enabled": false,
                 "type": "gemini",
                 "apiKey": "####",
-                "model": "gemini-2.5-flash",
+                "model": "gemini-3-flash-preview",
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
             },
             {
-                "name": "cloudflare-llama-4-scout-17b",
+                "name": "cloudflare-kimi-k2.5",
                 "enabled": false,
                 "type": "cloudflare",
                 "accountId": "####",
                 "apiToken": "####",
-                "model": "@cf/meta/llama-4-scout-17b-16e-instruct",
+                "model": "@cf/moonshotai/kimi-k2.5",
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
             },
             {
-                "name": "openrouter-gpt-oss-20b",
+                "name": "openrouter-gpt-oss-120b",
                 "enabled": false,
                 "type": "openrouter",
                 "apiKey": "####",
-                "model": "openai/gpt-oss-20b:free",
+                "model": "openai/gpt-oss-120b:free",
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
             },
             {
-                "name": "poixe-gemini-2.5-flash",
+                "name": "poixe-gpt-5.2",
                 "enabled": false,
                 "type": "poixe",
                 "apiKey": "####",
-                "model": "gemini-2.5-flash:free",
+                "model": "gpt-5.2:free",
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
             },
             {
-                "name": "siliconflow-glm-4.1v-9b-thinking",
+                "name": "siliconflow-Kimi-K2.5",
                 "enabled": false,
                 "type": "siliconflow",
                 "apiKey": "####",
-                "model": "THUDM/GLM-4.1V-9B-Thinking",
+                "model": "Pro/moonshotai/Kimi-K2.5",
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
             },
             {
-                "name": "infinigence-glm-4.5v",
+                "name": "infinigence-kimi-k2.5",
                 "enabled": false,
                 "type": "infinigence",
                 "apiKey": "####",
-                "model": "glm-4.5v",
+                "model": "kimi-k2.5",
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
             },
             {
-                "name": "zhipu-glm-4.1v-thinking-flash",
+                "name": "zhipu-glm-5v-turbo",
                 "enabled": false,
                 "type": "zhipu",
                 "apiKey": "####",
-                "model": "GLM-4.1V-Thinking-Flash",
+                "model": "glm-5v-turbo",
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
@@ -310,31 +311,31 @@ python main.py
                 "score": 100
             },
             {
-                "name": "modelscope-intern-s1",
+                "name": "modelscope-Kimi-K2.5",
                 "enabled": false,
                 "type": "modelscope",
                 "accessToken": "####",
-                "model": "Shanghai_AI_Laboratory/Intern-S1",
+                "model": "moonshotai/Kimi-K2.5",
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
             },
             {
-                "name": "moonshot-kimi-latest",
+                "name": "moonshot-kimi-k2.5",
                 "enabled": false,
                 "type": "moonshot",
                 "apiKey": "####",
-                "model": "kimi-latest",
+                "model": "kimi-k2.5",
                 "prompt": "You are a helpful assistant.",
-                "temperature": 0.2,
+                "temperature": 1,
                 "score": 100
             },
             {
-                "name": "volcengine-doubao-seed-1-6-vision",
+                "name": "volcengine-doubao-seed-2-0-pro-260215",
                 "enabled": false,
                 "type": "volcengine",
                 "apiKey": "####",
-                "model": "doubao-seed-1-6-vision-250815",
+                "model": "doubao-seed-2-0-pro-260215",
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
@@ -350,51 +351,41 @@ python main.py
                 "score": 100
             },
             {
-                "name": "bailian-qwen3-vl-plus",
+                "name": "bailian-qwen3.6-plus",
                 "enabled": false,
                 "type": "bailian",
                 "apiKey": "####",
-                "model": "qwen3-vl-plus",
+                "model": "qwen3.6-plus",
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
             },
             {
-                "name": "qianfan-ernie-4.5-turbo-vl-latest",
+                "name": "qianfan-ernie-5.0-thinking-preview",
                 "enabled": false,
                 "type": "qianfan",
                 "apiKey": "####",
-                "model": "ernie-4.5-turbo-vl-latest",
+                "model": "ernie-5.0-thinking-preview",
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
             },
             {
-                "name": "xunfei-xqwen2d5s32bvl",
+                "name": "xunfei-xop3qwen32bvl",
                 "enabled": false,
                 "type": "xunfei",
                 "apiKey": "####",
-                "model": "xqwen2d5s32bvl",
+                "model": "xop3qwen32bvl",
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
             },
             {
-                "name": "minimax-MiniMax-Text-01",
+                "name": "minimax-MiniMax-M2.7",
                 "enabled": false,
                 "type": "minimax",
                 "apiKey": "####",
-                "model": "MiniMax-Text-01",
-                "prompt": "You are a helpful assistant.",
-                "temperature": 0.2,
-                "score": 100
-            },
-            {
-                "name": "lingyiwanwu-yi-vision-v2",
-                "enabled": false,
-                "type": "lingyiwanwu",
-                "apiKey": "####",
-                "model": "yi-vision-v2",
+                "model": "MiniMax-M2.7",
                 "prompt": "You are a helpful assistant.",
                 "temperature": 0.2,
                 "score": 100
@@ -421,23 +412,13 @@ python main.py
                 "score": 100
             },
             {
-                "name": "hunyuan-hunyuan-t1-vision",
+                "name": "tencent-kimi-k2.5",
                 "enabled": false,
-                "type": "hunyuan",
+                "type": "tencent",
                 "apiKey": "####",
-                "model": "hunyuan-t1-vision",
+                "model": "kimi-k2.5",
                 "prompt": "You are a helpful assistant.",
-                "temperature": 0.2,
-                "score": 100
-            },
-            {
-                "name": "meta-Llama-4-Maverick-17B-128E-Instruct-FP8",
-                "enabled": false,
-                "type": "meta",
-                "apiKey": "####",
-                "model": "Llama-4-Maverick-17B-128E-Instruct-FP8",
-                "prompt": "You are a helpful assistant.",
-                "temperature": 0.2,
+                "temperature": 1,
                 "score": 100
             },
             {
