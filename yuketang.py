@@ -317,7 +317,7 @@ class yuketang:
             try:
                 res = requests.post(url=url, headers=headers, json=data, timeout=timeout)
             except:
-                return
+                continue
             self.set_authorization(res, lessonId)
             self.get_lesson_info(lessonId)
             try:
