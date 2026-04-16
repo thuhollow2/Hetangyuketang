@@ -2,7 +2,6 @@ import json
 import os
 import requests
 import base64
-import math
 import time
 import re
 import ast
@@ -423,37 +422,57 @@ def generate_claude_answer(query, folder, config):
         return None
     return text
 
+def upload_grok_file(folder, config):
+    files = [f for f in os.listdir(folder) if f.lower().endswith('.pdf')]
+    if not files:
+        print("没有PDF文件")
+        return None
+    filepath = os.path.join(folder, files[0])
+    headers = {
+        "Authorization": f"Bearer {config['apiKey']}"
+    }
+    data = {
+        "purpose": "assistants"
+    }
+
+    with open(filepath, "rb") as f:
+        files ={
+            "file": (os.path.basename(filepath), f.read(), "application/pdf")
+        }
+    try:
+        r = requests.post("https://api.x.ai/v1/files", headers=headers, files=files, data=data, timeout=timeout)
+        r.raise_for_status()
+        return r.json()["id"]
+    except Exception as e:
+        print(f"Grok文件上传发生错误: {e}")
+        return None
+
 def generate_grok_answer(query, folder, config):
-    files = [f for f in os.listdir(folder)
-                   if f.lower().endswith('.jpg') and f.lower().startswith('mark_') and os.path.splitext(f)[0][5:].isdigit()]
-    files.sort(key=lambda x: int(os.path.splitext(x)[0][5:]))
-    files = [os.path.join(folder, f) for f in files]
+    file_id = upload_grok_file(folder, config)
+    if not file_id:
+        return None
+    
     content = [
-        {"type": "text", "text": query}
+        {"type": "input_text", "text": query},
+        {"type": "input_file", "file_id": file_id}
     ]
-    for f in files:
-        with open(f, "rb") as ff:
-            image_url = f"data:image/jpeg;base64,{base64.b64encode(ff.read()).decode('utf-8')}"
-        content.append({
-            "type": "image_url", "image_url": { "url": image_url }
-        })
     headers = {
         "Authorization": f"Bearer {config['apiKey']}",
         "Content-Type": "application/json"
     }
     payload = {
         "model": config['model'],
-        "temperature": config["temperature"],
-        "max_tokens": 10000,
-        "messages": []
+        "temperature": config['temperature'],
+        "max_output_tokens": 10000,
+        "input": []
     }
     if config['prompt']:
-        payload["messages"].append({"role": "system", "content": config['prompt']})
-    payload["messages"].append({"role": "user", "content": content})
+        payload["input"].append({"role": "system", "content": config['prompt']})
+    payload["input"].append({"role": "user", "content": content})
     try:
-        r = requests.post("https://api.x.ai/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r = requests.post("https://api.x.ai/v1/responses", headers=headers, data=json.dumps(payload), timeout=timeout)
         r.raise_for_status()
-        text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
+        text = "\n".join([c.get("content", [])[0].get("text", "") for c in r.json().get("output", [{}]) if c.get("type", "") == "message"]).strip()
     except Exception as e:
         print(f"Grok生成回答发生错误: {e}")
         return None
@@ -519,73 +538,7 @@ def generate_gemini_answer(query, folder, config):
     return text
 
 def generate_cloudflare_answer(query, folder, config):
-    files = [f for f in os.listdir(folder)
-                   if f.lower().endswith('.jpg') and f.lower().startswith('resized_') and os.path.splitext(f)[0][8:].isdigit()]
-    files.sort(key=lambda x: int(os.path.splitext(x)[0][8:]))
-    files = [os.path.join(folder, f) for f in files]
-    ppt = []
-    headers = {
-        "Authorization": f"Bearer {config['apiToken']}",
-        "Content-Type": "application/json"
-    }
-    if os.path.exists(os.path.join(folder, "ppt.txt")):
-        with open(os.path.join(folder, "ppt.txt"), "r", encoding="utf-8") as f:
-            ppt = f.read().splitlines()
-    else:
-        for i in range(math.ceil(len(files)/10)):
-            images = files[i*10:(i+1)*10]
-            payload = []
-            for img in images:
-                with open(img, "rb") as f:
-                    b64 = base64.b64encode(f.read()).decode("utf-8")
-                    payload.append({
-                        "temperature": config['temperature'],
-                        "max_tokens": 500,
-                        "messages": [{
-                            "role": "user",
-                            "content": [
-                                {"type": "text", "text": f"请叙述本图全部内容,要求:1)完整复述所有文字,尽量不修改;2)若有标题/表格/图表尽量提及;3)不要发挥.标注页码:第{os.path.splitext(os.path.basename(img))[0][8:]}页."},
-                                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}
-                            ]
-                        }]
-                    })
-                if config['prompt']:
-                    payload[-1]["messages"].append({"role": "system", "content": config['prompt']})
-            r = requests.post(f"https://api.cloudflare.com/client/v4/accounts/{config['accountId']}/ai/run/{config['model']}?queueRequest=true", headers=headers, data=json.dumps({"requests": payload}), timeout=timeout)
-            r.raise_for_status()
-            request_id = r.json()["result"]["request_id"]
-            start = time.time()
-            while True:
-                time.sleep(2)
-                if time.time() - start > timeout:
-                    print("Cloudflare轮询请求超时")
-                    break
-                try:
-                    p = requests.post(f"https://api.cloudflare.com/client/v4/accounts/{config['accountId']}/ai/run/{config['model']}?queueRequest=true", headers=headers, data=json.dumps({"request_id": request_id}), timeout=timeout)
-                    p.raise_for_status()
-                    if "responses" in p.json()["result"]:
-                        result_obj = p.json()["result"]
-                        responses = result_obj.get("responses", [])
-                        responses.sort(key=lambda x: int(x["id"]))
-                        base_page = int(os.path.splitext(os.path.basename(images[0]))[0][8:])
-                        
-                        for resp in responses:
-                            ppt.append(str({"页码": base_page + int(resp["id"]), "内容": resp["result"]["response"]}))
-                        break
-                except Exception as e:
-                    print(f"Cloudflare轮询请求发生错误: {e}")
-
-    if ppt:
-        if not os.path.exists(os.path.join(folder, "ppt.txt")):
-            with open(os.path.join(folder, "ppt.txt"), "w", encoding="utf-8") as f:
-                f.write("\n".join(ppt))
-    else:
-        if os.path.exists(os.path.join(folder, "ppt.txt")):
-            os.remove(os.path.join(folder, "ppt.txt"))
-        print("Cloudflare未生成PPT文本")
-        return None
-
-    filepath = os.path.join(folder, "grid.jpg")
+    filepath = os.path.join(folder, "long.jpg")
     if not os.path.exists(filepath):
         print(f"文件 {filepath} 不存在")
         return None
@@ -594,9 +547,12 @@ def generate_cloudflare_answer(query, folder, config):
     data_uri = f"data:image/jpeg;base64,{b64}"
     content = [
         {"type": "text", "text": query},
-        {"type": "text", "text": "\n".join(ppt)},
         {"type": "image_url", "image_url": {"url": data_uri}}
     ]
+    headers = {
+        "Authorization": f"Bearer {config['apiToken']}",
+        "Content-Type": "application/json"
+    }
     payload = {
         "temperature": config['temperature'],
         "max_tokens": 10000,
@@ -608,7 +564,7 @@ def generate_cloudflare_answer(query, folder, config):
     try:
         r = requests.post(f"https://api.cloudflare.com/client/v4/accounts/{config['accountId']}/ai/run/{config['model']}", headers=headers, data=json.dumps(payload), timeout=timeout)
         r.raise_for_status()
-        text = r.json().get("result", {}).get("response", '')
+        text = r.json().get("result", {}).get("choices", [{}])[0].get("message", {}).get("content", '')
     except Exception as e:
         print(f"Cloudflare生成回答发生错误: {e}")
         return None
@@ -753,7 +709,7 @@ def generate_infinigence_answer(query, folder, config):
     return text
 
 def generate_zhipu_answer(query, folder, config):
-    filepath = os.path.join(folder, "long.jpg")
+    filepath = os.path.join(folder, "rect.jpg")
     if not os.path.exists(filepath):
         print(f"文件 {filepath} 不存在")
         return None
@@ -823,7 +779,7 @@ def generate_dmxapi_answer(query, folder, config):
     return text
 
 def generate_modelscope_answer(query, folder, config):
-    filepath = os.path.join(folder, "long.jpg")
+    filepath = os.path.join(folder, "rect.jpg")
     if not os.path.exists(filepath):
         print(f"文件 {filepath} 不存在")
         return None
@@ -1058,7 +1014,7 @@ def generate_xunfei_answer(query, folder, config):
         payload["messages"].append({"role": "system", "content": config['prompt']})
     payload["messages"].append({"role": "user", "content": content})
     try:
-        r = requests.post("https://maas-api.cn-huabei-1.xf-yun.com/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r = requests.post("https://maas-api.cn-huabei-1.xf-yun.com/v2/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
         r.raise_for_status()
         text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
     except Exception as e:
@@ -1097,40 +1053,6 @@ def generate_minimax_answer(query, folder, config):
         text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
     except Exception as e:
         print(f"Minimax生成回答发生错误: {e}")
-        return None
-    return text
-
-def generate_lingyiwanwu_answer(query, folder, config):
-    filepath = os.path.join(folder, "long.jpg")
-    if not os.path.exists(filepath):
-        print(f"文件 {filepath} 不存在")
-        return None
-    with open(filepath, "rb") as f:
-        b64 = base64.b64encode(f.read()).decode("utf-8")
-    data_uri = f"data:image/jpeg;base64,{b64}"
-    content = [
-        {"type": "text", "text": query},
-        {"type": "image_url", "image_url": {"url": data_uri}}
-    ]
-    headers = {
-        "Authorization": f"Bearer {config['apiKey']}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": config['model'],
-        "temperature": config['temperature'],
-        "max_tokens": 10000,
-        "messages": []
-    }
-    if config['prompt']:
-        payload["messages"].append({"role": "system", "content": config['prompt']})
-    payload["messages"].append({"role": "user", "content": content})
-    try:
-        r = requests.post("https://api.lingyiwanwu.com/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
-        r.raise_for_status()
-        text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
-    except Exception as e:
-        print(f"LingYiWanWu生成回答发生错误: {e}")
         return None
     return text
 
@@ -1247,7 +1169,7 @@ def generate_mistral_answer(query, folder, config):
         return None
     return text
 
-def generate_hunyuan_answer(query, folder, config):
+def generate_tencent_answer(query, folder, config):
     filepath = os.path.join(folder, "long.jpg")
     if not os.path.exists(filepath):
         print(f"文件 {filepath} 不存在")
@@ -1274,45 +1196,11 @@ def generate_hunyuan_answer(query, folder, config):
         payload["messages"].append({"role": "system", "content": config['prompt']})
     payload["messages"].append({"role": "user", "content": content})
     try:
-        r = requests.post("https://api.hunyuan.cloud.tencent.com/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
+        r = requests.post("https://tokenhub.tencentmaas.com/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
         r.raise_for_status()
         text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
     except Exception as e:
-        print(f"HunYuan生成回答发生错误: {e}")
-        return None
-    return text
-
-def generate_meta_answer(query, folder, config):
-    filepath = os.path.join(folder, "long.jpg")
-    if not os.path.exists(filepath):
-        print(f"文件 {filepath} 不存在")
-        return None
-    with open(filepath, "rb") as f:
-        b64 = base64.b64encode(f.read()).decode("utf-8")
-    data_uri = f"data:image/jpeg;base64,{b64}"
-    content = [
-        {"type": "text", "text": query},
-        {"type": "image_url", "image_url": {"url": data_uri}}
-    ]
-    headers = {
-        "Authorization": f"Bearer {config['apiKey']}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": config['model'],
-        "temperature": config['temperature'],
-        "max_completion_tokens": 10000,
-        "messages": []
-    }
-    if config['prompt']:
-        payload["messages"].append({"role": "system", "content": config['prompt']})
-    payload["messages"].append({"role": "user", "content": content})
-    try:
-        r = requests.post("https://api.llama.com/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=timeout)
-        r.raise_for_status()
-        text = r.json().get("choices", [{}])[0].get("message", {}).get("content", '')
-    except Exception as e:
-        print(f"Meta生成回答发生错误: {e}")
+        print(f"Tencent生成回答发生错误: {e}")
         return None
     return text
 
@@ -1335,7 +1223,7 @@ def generate_cohere_answer(query, folder, config):
     payload = {
         "model": config['model'],
         "temperature": config['temperature'],
-        "max_tokens": 10000,
+        "max_tokens": 8000,
         "messages": []
     }
     if config['prompt']:
