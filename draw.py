@@ -58,7 +58,7 @@ def fetch_bytes(url, no):
     data = resp.content
     with open(p, "wb") as f:
         f.write(data)
-    return data 
+    return data
 
 def prefetch_images(urls):
     pool, futs = {}, {}
