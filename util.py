@@ -54,7 +54,7 @@ def download_qrcode(url, name):
     barcodes = decode(Image.open("qrcode.jpg"))
     for barcode in barcodes:
         barcode_url = barcode.data.decode("utf-8")
-        
+
     qr = qrcode.QRCode()
     qr.add_data(barcode_url)
     qr.print_ascii(invert=True)
@@ -156,11 +156,15 @@ def download_images_to_folder(slides, folder):
             except Exception as e:
                 print(f"下载任务异常: {e}")
 
+def sanitize_filename(name):
+    name = re.sub(r'[\x00-\x1f]', '', str(name))
+    return re.sub(r'[\\/:*?"<>|]', '_', name)
+
 def images_to_pdf(folder, output_path):
     if not os.path.exists(folder):
         print(f"文件夹 {folder} 不存在")
         return
-    
+
     image_files = [f for f in os.listdir(folder)
                    if f.lower().endswith('.jpg') and f.lower().startswith('raw_') and os.path.splitext(f)[0][4:].isdigit()]
     image_files.sort(key=lambda x: int(os.path.splitext(x)[0][4:]))
@@ -460,7 +464,7 @@ def concat_vertical_cv(folder, image_type, quality, questionList, mark):
             except Exception as e2:
                 print(f"保存长图再次失败: {e2}")
                 return
-            
+
         size_mb = os.path.getsize(out_path) / (1024 * 1024)
         while size_mb > 2 and q >= 5:
             q -= 4
