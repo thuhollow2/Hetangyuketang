@@ -89,7 +89,7 @@ class yuketang:
     async def get_cookie(self):
         flag = 0
         def read_cookie():
-            with open(f"cookie_{sanitize_filename(self.name)}.txt", "r") as f:
+            with open(f"cookie_{sanitize_filename(self.name)}.txt", "r", encoding="utf-8") as f:
                 lines = f.readlines()
             self.cookie = lines[0].strip()
             self.cookieTime = convert_date(int(lines[1].strip())) if len(lines) > 1 else ''
@@ -171,7 +171,7 @@ class yuketang:
         self.get_username()
         content = f'{self.cookie}\n{date}\n{self.username}'
         self.cookieTime = convert_date(int(date))
-        with open(f"cookie_{sanitize_filename(self.name)}.txt", "w") as f:
+        with open(f"cookie_{sanitize_filename(self.name)}.txt", "w", encoding="utf-8") as f:
             f.write(content)
 
     def check_yuketang_cookie(self):
