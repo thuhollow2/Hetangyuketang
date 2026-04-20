@@ -62,7 +62,7 @@
                     "classroomCodeList": ["94RGB"]
                 },
                 "services": ["dingtalk", "feishu"]
-            },
+            }
         ],
         "timeout": 30
     },
