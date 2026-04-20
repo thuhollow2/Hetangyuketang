@@ -71,7 +71,7 @@ pip install -r requirements.txt
 下载本项目后，切换到项目根目录，执行以下命令安装依赖
 
 ```shell
-pip install -r requirements.txt 
+pip install -r requirements.txt
 ```
  - `pyzbar` 是对 **ZBar** 的 Python 封装，本身需要系统里有 **libzbar** 动态库；非 Windows 上必须先装 zbar 才能用，详情见 [pyzbar 安装说明](https://github.com/NaturalHistoryMuseum/pyzbar#installation)
 
@@ -155,7 +155,7 @@ python main.py
                     "classroomCodeList": ["94RGB"]
                 },
                 "services": ["dingtalk", "feishu"]
-            },
+            }
         ],
         "timeout": 30
     },
@@ -457,7 +457,7 @@ python main.py
  - 课程名可在雨课堂首页的课程标签里查找，具体如图中红框所示
 
  ![](classroomName-1.png)
- 
+
  ![](classroomName-2.png)
 
  - 课堂签到方式为通过“正在上课”提示进入课堂，不支持动态二维码签到
@@ -477,7 +477,7 @@ python main.py
  - 考试系统不在雨课堂，因此从雨课堂进入考试系统，将通过以下按钮之一跳转到考试系统
 
  ![](exam-1.png)
- 
+
  ![](exam-2.png)
 
  在跳转过程中，考试系统将利用雨课堂 cookie 生成考试系统 `x_access_token`，其有效期约一天，且同一用户同一时间唯一，若用户先在网页端进入考试页面并开始考试，后使用程序进入考试系统，将导致 `x_access_token` 更新，使得网页端考试页面失效
@@ -621,7 +621,7 @@ python main.py
 #### 分块限制
 
 单次推送有大小限制，超过将分块传输，可设置
-| 推送方式 | 消息限制 (`msgLimit`) | 文件限制 (`dataLimit`) | 
+| 推送方式 | 消息限制 (`msgLimit`) | 文件限制 (`dataLimit`) |
 | -------- | -------- | -------- |
 | 企业微信 (`wx`) | 500字符 (500) | 20MB (20971520) |
 | 钉钉 (`dd`) | 3000字符 (3000) | 20MB (20971520) |
