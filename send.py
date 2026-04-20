@@ -217,7 +217,7 @@ def get_wx_token(service):
         txt_last_edit_time = os.stat(f'access_token_wx_{sanitize_filename(service["name"])}.txt').st_mtime
         now_time = time.time()
         if now_time - txt_last_edit_time < 7000:
-            with open(f'access_token_wx_{sanitize_filename(service["name"])}.txt', 'r') as f:
+            with open(f'access_token_wx_{sanitize_filename(service["name"])}.txt', 'r', encoding='utf-8') as f:
                 access_token = f.read()
     if not access_token:
         try:
@@ -236,7 +236,7 @@ def get_dd_token(service):
         txt_last_edit_time = os.stat(f'access_token_dd_{sanitize_filename(service["name"])}.txt').st_mtime
         now_time = time.time()
         if now_time - txt_last_edit_time < 7000:
-            with open(f'access_token_dd_{sanitize_filename(service["name"])}.txt', 'r') as f:
+            with open(f'access_token_dd_{sanitize_filename(service["name"])}.txt', 'r', encoding='utf-8') as f:
                 access_token = f.read()
     if not access_token:
         try:
@@ -255,7 +255,7 @@ def get_fs_token(service):
         txt_last_edit_time = os.stat(f'access_token_fs_{sanitize_filename(service["name"])}.txt').st_mtime
         now_time = time.time()
         if now_time - txt_last_edit_time < 1740:
-            with open(f'access_token_fs_{sanitize_filename(service["name"])}.txt', 'r') as f:
+            with open(f'access_token_fs_{sanitize_filename(service["name"])}.txt', 'r', encoding='utf-8') as f:
                 access_token = f.read()
     if not access_token:
         try:
