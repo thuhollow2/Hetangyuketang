@@ -89,14 +89,14 @@ class yuketang:
     async def get_cookie(self):
         flag = 0
         def read_cookie():
-            with open(f"cookie_{self.name}.txt", "r") as f:
+            with open(f"cookie_{sanitize_filename(self.name)}.txt", "r") as f:
                 lines = f.readlines()
             self.cookie = lines[0].strip()
             self.cookieTime = convert_date(int(lines[1].strip())) if len(lines) > 1 else ''
             self.username = lines[2].strip() if len(lines) > 2 else ''
             self.msgmgr = SendManager(f"[{self.name}] {self.username}\n", self.services)
         while True:
-            if not os.path.exists(f"cookie_{self.name}.txt"):
+            if not os.path.exists(f"cookie_{sanitize_filename(self.name)}.txt"):
                 flag = 1
                 await asyncio.to_thread(self.msgmgr.sendMsg, "正在第一次获取登录cookie, 请微信扫码")
                 await self.ws_controller(self.ws_login, retries=1000, delay=1)
@@ -171,7 +171,7 @@ class yuketang:
         self.get_username()
         content = f'{self.cookie}\n{date}\n{self.username}'
         self.cookieTime = convert_date(int(date))
-        with open(f"cookie_{self.name}.txt", "w") as f:
+        with open(f"cookie_{sanitize_filename(self.name)}.txt", "w") as f:
             f.write(content)
 
     def check_yuketang_cookie(self):
@@ -649,7 +649,7 @@ class yuketang:
                 with open(os.path.join(folder, "paper.json"), "w", encoding="utf-8") as f:
                     json.dump(info, f, ensure_ascii=False, indent=4)
 
-            output_pdf_path = os.path.join(folder, exam['title'].strip() + ".pdf")
+            output_pdf_path = os.path.join(folder, sanitize_filename(exam['title'].strip()) + ".pdf")
             if not os.path.exists(folder) or not os.path.exists(output_pdf_path):
                 for idx, block in enumerate(problemsBlockList):
                     await asyncio.to_thread(compose_from_strlist, block.split("\r"), os.path.join(folder, f"raw_{idx + 1}.jpg"))
@@ -841,7 +841,7 @@ class yuketang:
         async with _get_fetch_lock(lessonId, 2):  # 同一 lessonId 串行, 跨 lessonId 并行
             if self.lessonIdDict.get(lessonId, {}).get('presentation', 0) != ppt_id: return
             if self.lessonIdDict[lessonId].get('presentation_status', False): return
-            output_pdf_path = os.path.join(folder, lesson['classroomName'].strip() + "-" + lesson['title'].strip() + ".pdf")
+            output_pdf_path = os.path.join(folder, sanitize_filename(lesson['classroomName'].strip() + "-" + lesson['title'].strip()) + ".pdf")
             if not os.path.exists(folder) or not os.path.exists(output_pdf_path):
                 await asyncio.to_thread(clear_folder, folder)
                 with open(os.path.join(folder, "ppt.json"), "w", encoding="utf-8") as f:
