@@ -451,7 +451,7 @@ def generate_grok_answer(query, folder, config):
     file_id = upload_grok_file(folder, config)
     if not file_id:
         return None
-    
+
     content = [
         {"type": "input_text", "text": query},
         {"type": "input_file", "file_id": file_id}
@@ -1130,7 +1130,7 @@ def upload_mistral_file(folder, config):
     except Exception as e:
         print(f"Mistral文件上传发生错误: {e}")
         return None
-    
+
 def generate_mistral_answer(query, folder, config):
     file_id = upload_mistral_file(folder, config)
     if not file_id:
