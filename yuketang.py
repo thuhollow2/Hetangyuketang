@@ -40,6 +40,9 @@ def _get_fetch_lock(att, index):
 
     return lock
 
+def _sanitize_filename(name: str) -> str:                                                                     
+    return re.sub(r'[\\/:*?"<>|]', '_', name)
+
 class yuketang:
     def __init__(self, yt_config, idx):
         self.idx = idx
@@ -649,7 +652,7 @@ class yuketang:
                 with open(os.path.join(folder, "paper.json"), "w", encoding="utf-8") as f:
                     json.dump(info, f, ensure_ascii=False, indent=4)
 
-            output_pdf_path = os.path.join(folder, exam['title'].strip() + ".pdf")
+            output_pdf_path = os.path.join(folder, _sanitize_filename(exam['title'].strip()) + ".pdf")
             if not os.path.exists(folder) or not os.path.exists(output_pdf_path):
                 for idx, block in enumerate(problemsBlockList):
                     await asyncio.to_thread(compose_from_strlist, block.split("\r"), os.path.join(folder, f"raw_{idx + 1}.jpg"))
@@ -841,7 +844,7 @@ class yuketang:
         async with _get_fetch_lock(lessonId, 2):  # 同一 lessonId 串行, 跨 lessonId 并行
             if self.lessonIdDict.get(lessonId, {}).get('presentation', 0) != ppt_id: return
             if self.lessonIdDict[lessonId].get('presentation_status', False): return
-            output_pdf_path = os.path.join(folder, lesson['classroomName'].strip() + "-" + lesson['title'].strip() + ".pdf")
+            output_pdf_path = os.path.join(folder, _sanitize_filename(lesson['classroomName'].strip() + "-" + lesson['title'].strip()) + ".pdf")
             if not os.path.exists(folder) or not os.path.exists(output_pdf_path):
                 await asyncio.to_thread(clear_folder, folder)
                 with open(os.path.join(folder, "ppt.json"), "w", encoding="utf-8") as f:
