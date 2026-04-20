@@ -3,6 +3,7 @@ import requests
 import os
 import time
 import io
+import re
 from PyPDF2 import PdfReader, PdfWriter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -126,6 +127,10 @@ class SendManager:
                 except Exception as e:
                     print(f"发送失败: {e}")
 
+def sanitize_filename(name):
+    name = re.sub(r'[\x00-\x1f]', '', str(name))
+    return re.sub(r'[\\/:*?"<>|]', '_', name)
+
 def get_pdf_size(pdf_writer):
     temp_io = io.BytesIO()
     pdf_writer.write(temp_io)
@@ -208,18 +213,18 @@ def msg_part(message, max_length):
 
 def get_wx_token(service):
     access_token = None
-    if os.path.exists(f'access_token_wx_{service["name"]}.txt'):
-        txt_last_edit_time = os.stat(f'access_token_wx_{service["name"]}.txt').st_mtime
+    if os.path.exists(f'access_token_wx_{sanitize_filename(service["name"])}.txt'):
+        txt_last_edit_time = os.stat(f'access_token_wx_{sanitize_filename(service["name"])}.txt').st_mtime
         now_time = time.time()
         if now_time - txt_last_edit_time < 7000:
-            with open(f'access_token_wx_{service["name"]}.txt', 'r') as f:
+            with open(f'access_token_wx_{sanitize_filename(service["name"])}.txt', 'r') as f:
                 access_token = f.read()
     if not access_token:
         try:
             r = requests.post(
                 f'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={service["companyId"]}&corpsecret={service["secret"]}', timeout=timeout)
             access_token = r.json()["access_token"]
-            with open(f'access_token_wx_{service["name"]}.txt', 'w', encoding='utf-8') as f:
+            with open(f'access_token_wx_{sanitize_filename(service["name"])}.txt', 'w', encoding='utf-8') as f:
                 f.write(access_token)
         except Exception as e:
             print(f"企业微信获取通行密钥时发生错误: {e}")
@@ -227,18 +232,18 @@ def get_wx_token(service):
 
 def get_dd_token(service):
     access_token = None
-    if os.path.exists(f'access_token_dd_{service["name"]}.txt'):
-        txt_last_edit_time = os.stat(f'access_token_dd_{service["name"]}.txt').st_mtime
+    if os.path.exists(f'access_token_dd_{sanitize_filename(service["name"])}.txt'):
+        txt_last_edit_time = os.stat(f'access_token_dd_{sanitize_filename(service["name"])}.txt').st_mtime
         now_time = time.time()
         if now_time - txt_last_edit_time < 7000:
-            with open(f'access_token_dd_{service["name"]}.txt', 'r') as f:
+            with open(f'access_token_dd_{sanitize_filename(service["name"])}.txt', 'r') as f:
                 access_token = f.read()
     if not access_token:
         try:
             r = requests.post(
                 f'https://api.dingtalk.com/v1.0/oauth2/accessToken', json={"appKey": service["appKey"], "appSecret": service["appSecret"]}, timeout=timeout)
             access_token = r.json()["accessToken"]
-            with open(f'access_token_dd_{service["name"]}.txt', 'w', encoding='utf-8') as f:
+            with open(f'access_token_dd_{sanitize_filename(service["name"])}.txt', 'w', encoding='utf-8') as f:
                 f.write(access_token)
         except Exception as e:
             print(f"钉钉获取通行密钥时发生错误: {e}")
@@ -246,18 +251,18 @@ def get_dd_token(service):
 
 def get_fs_token(service):
     access_token = None
-    if os.path.exists(f'access_token_fs_{service["name"]}.txt'):
-        txt_last_edit_time = os.stat(f'access_token_fs_{service["name"]}.txt').st_mtime
+    if os.path.exists(f'access_token_fs_{sanitize_filename(service["name"])}.txt'):
+        txt_last_edit_time = os.stat(f'access_token_fs_{sanitize_filename(service["name"])}.txt').st_mtime
         now_time = time.time()
         if now_time - txt_last_edit_time < 1740:
-            with open(f'access_token_fs_{service["name"]}.txt', 'r') as f:
+            with open(f'access_token_fs_{sanitize_filename(service["name"])}.txt', 'r') as f:
                 access_token = f.read()
     if not access_token:
         try:
             r = requests.post(
                 f'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', json={"app_id": service["appId"], "app_secret": service["appSecret"]}, timeout=timeout)
             access_token = r.json()["tenant_access_token"]
-            with open(f'access_token_fs_{service["name"]}.txt', 'w', encoding='utf-8') as f:
+            with open(f'access_token_fs_{sanitize_filename(service["name"])}.txt', 'w', encoding='utf-8') as f:
                 f.write(access_token)
         except Exception as e:
             print(f"飞书获取通行密钥时发生错误: {e}")
