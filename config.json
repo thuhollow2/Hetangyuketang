@@ -6,7 +6,6 @@
                 "enabled": false,
                 "domain": "pro.yuketang.cn",
                 "lesson": {
-                    "classroomCodeList": ["YVQ6QC", "7DEN3A"],
                     "classroomWhiteList": [],
                     "classroomBlackList": ["未央.机器学习", "未央.深度学习"],
                     "classroomStartTimeDict": {
@@ -37,7 +36,6 @@
                 "enabled": false,
                 "domain": "pro.yuketang.cn",
                 "lesson": {
-                    "classroomCodeList": ["YVQ6QC", "7DEN3A"],
                     "classroomWhiteList": [],
                     "classroomBlackList": ["未央.机器学习", "未央.深度学习"],
                     "classroomStartTimeDict": {

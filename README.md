@@ -99,7 +99,6 @@ python main.py
                 "enabled": false,
                 "domain": "pro.yuketang.cn",
                 "lesson": {
-                    "classroomCodeList": ["YVQ6QC", "7DEN3A"],
                     "classroomWhiteList": [],
                     "classroomBlackList": ["未央.机器学习", "未央.深度学习"],
                     "classroomStartTimeDict": {
@@ -130,7 +129,6 @@ python main.py
                 "enabled": false,
                 "domain": "pro.yuketang.cn",
                 "lesson": {
-                    "classroomCodeList": ["YVQ6QC", "7DEN3A"],
                     "classroomWhiteList": [],
                     "classroomBlackList": ["未央.机器学习", "未央.深度学习"],
                     "classroomStartTimeDict": {
@@ -466,7 +464,7 @@ python main.py
 
  - 自动答题支持单选题、多选题、投票题、填空题、主观题和判断题
 
- - 若课堂自动答题未获取到答案，将提交默认答案（可修改[此处](yuketang.py#L916-L929)）
+ - 若课堂自动答题未获取到答案，将提交默认答案（可修改[此处](yuketang.py#L938-L951)）
 
  - 考试自动答题，指程序检测到用户已开始考试时，将生成或同步答案并上传至考试系统缓存；其并非正式提交，需用户手动提交试卷或考试截止自动提交试卷
 
@@ -691,13 +689,13 @@ python main.py
 
 使用模型前务必测试效果，确保能正确处理题目并生成合理答案
 
-预置了 [PPT 文件夹](./pro.yuketang.cn/lesson/1529274209982060032)，可用来测试各模型效果。直接运行 `llm.py` 观察输出即可
+预置了 [PPT 文件夹](./data/file/pro.yuketang.cn/lesson/1529274209982060032)，可用来测试各模型效果。直接运行 `llm.py` 观察输出即可
 
 ```shell
 python llm.py
 ```
 
-若想测试其他课堂，可在使用程序签到该课堂、生成 PPT 文件夹后，修改 [PPT 路径](llm.py#L1354)
+若想测试其他课堂，可在使用程序签到该课堂、生成 PPT 文件夹后，修改 [PPT 路径](llm.py#L1249)
 
 </details>
 

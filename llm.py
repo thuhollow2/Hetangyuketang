@@ -10,7 +10,12 @@ import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-os.chdir(current_dir)
+home_dir = os.environ.get("YUKETANG_HOME", current_dir)
+data_dir = os.path.join(home_dir, "data")
+os.makedirs(data_dir, exist_ok=True)
+file_dir = os.path.join(data_dir, "file")
+os.makedirs(file_dir, exist_ok=True)
+os.chdir(home_dir)
 
 with open('config.json', 'r', encoding='utf-8') as f:
     config = json.load(f)
@@ -349,6 +354,7 @@ def generate_openai_answer(query, folder, config):
     }
     payload = {
         "model": config['model'],
+        "temperature": config['temperature'],
         "max_output_tokens": 10000,
         "input": []
     }
@@ -1239,7 +1245,7 @@ def generate_cohere_answer(query, folder, config):
     return text
 
 if __name__ == "__main__":
-    folder = os.path.join("pro.yuketang.cn", "lesson", "1529274209982060032")
+    folder = os.path.join(file_dir, "pro.yuketang.cn", "lesson", "1529274209982060032")
     if os.path.exists(os.path.join(folder, "problems.txt")):
         with open(os.path.join(folder, "problems.txt"), "r", encoding="utf-8") as f:
             problems = ast.literal_eval(f.read().strip())

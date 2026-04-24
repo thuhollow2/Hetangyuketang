@@ -17,7 +17,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import Counter
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-os.chdir(current_dir)
+home_dir = os.environ.get("YUKETANG_HOME", current_dir)
+data_dir = os.path.join(home_dir, "data")
+os.makedirs(data_dir, exist_ok=True)
+qr_dir = os.path.join(data_dir, "qr")
+os.makedirs(qr_dir, exist_ok=True)
+os.chdir(home_dir)
 
 with open('config.json', 'r', encoding='utf-8') as f:
     config = json.load(f)
@@ -42,16 +47,18 @@ def equal_unordered(a, b):
     return freeze(a) == freeze(b)
 
 def download_qrcode(url, name):
+    safe_name = sanitize_filename(name)
+    qr_filename = os.path.join(qr_dir, f"qrcode_{safe_name}.jpg")
     try:
         res = requests.get(url, timeout=timeout)
     except Exception as e:
         print(f"[{name}]\n下载登录二维码时发生错误: {e}")
         return
-    with open("qrcode.jpg", "wb") as f:
+    with open(qr_filename, "wb") as f:
         f.write(res.content)
-    print(f"[{name}]\n登录二维码已保存为qrcode.jpg")
+    print(f"[{name}]\n登录二维码已保存为{qr_filename}")
     barcode_url = ''
-    barcodes = decode(Image.open("qrcode.jpg"))
+    barcodes = decode(Image.open(qr_filename))
     for barcode in barcodes:
         barcode_url = barcode.data.decode("utf-8")
 
@@ -96,7 +103,7 @@ def download_qrcode(url, name):
     y_text = pad_top
     draw.text((x_text, y_text), title, font=font, fill="black")
     canvas.paste(qr_img, (0, y_text + th + pad_between))
-    canvas.save("qrcode.jpg")
+    canvas.save(qr_filename)
 
 def cookie_date(response):
     set_cookie_str = response.headers.get('Set-Cookie', '')

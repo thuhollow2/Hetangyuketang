@@ -7,7 +7,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from PIL import Image, ImageDraw, ImageFont, ImageFile
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-os.chdir(current_dir)
+home_dir = os.environ.get("YUKETANG_HOME", current_dir)
+data_dir = os.path.join(home_dir, "data")
+os.makedirs(data_dir, exist_ok=True)
+file_dir = os.path.join(data_dir, "file")
+os.makedirs(file_dir, exist_ok=True)
+os.chdir(home_dir)
 
 CANVAS_W, CANVAS_H = 1280, 960
 TEXT_PADDING_Y = 24
@@ -21,7 +26,7 @@ MIN_S = 0.03  # 全局缩放最小值
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 RESAMPLE = Image.Resampling.BILINEAR
 MAX_WORKERS = min(4, (os.cpu_count() or 4) * 2)
-IMG_CACHE = "_img_cache"
+IMG_CACHE = os.path.join(file_dir, "_img_cache")
 
 IMG_TAG_RE = re.compile(r'<\s*img\b[^>]*src=["\']([^"\']+)["\'][^>]*>', re.IGNORECASE)
 _MEASURE_DRAW = ImageDraw.Draw(Image.new("RGB", (2, 2), "white"))

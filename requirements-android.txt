@@ -1,0 +1,10 @@
+pypdf
+pytz
+requests
+websockets
+freetype-py
+chaquopy-freetype
+qrcode
+Pillow
+pyzbar
+chaquopy-zbar

@@ -4,11 +4,16 @@ import os
 import time
 import io
 import re
-from PyPDF2 import PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-os.chdir(current_dir)
+home_dir = os.environ.get("YUKETANG_HOME", current_dir)
+data_dir = os.path.join(home_dir, "data")
+os.makedirs(data_dir, exist_ok=True)
+token_dir = os.path.join(data_dir, "token")
+os.makedirs(token_dir, exist_ok=True)
+os.chdir(home_dir)
 
 with open('config.json', 'r', encoding='utf-8') as f:
     config = json.load(f)
@@ -213,18 +218,19 @@ def msg_part(message, max_length):
 
 def get_wx_token(service):
     access_token = None
-    if os.path.exists(f'access_token_wx_{sanitize_filename(service["name"])}.txt'):
-        txt_last_edit_time = os.stat(f'access_token_wx_{sanitize_filename(service["name"])}.txt').st_mtime
+    path = os.path.join(token_dir, f'access_token_wx_{sanitize_filename(service["name"])}.txt')
+    if os.path.exists(path):
+        txt_last_edit_time = os.stat(path).st_mtime
         now_time = time.time()
         if now_time - txt_last_edit_time < 7000:
-            with open(f'access_token_wx_{sanitize_filename(service["name"])}.txt', 'r', encoding='utf-8') as f:
+            with open(path, 'r', encoding='utf-8') as f:
                 access_token = f.read()
     if not access_token:
         try:
             r = requests.post(
                 f'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={service["companyId"]}&corpsecret={service["secret"]}', timeout=timeout)
             access_token = r.json()["access_token"]
-            with open(f'access_token_wx_{sanitize_filename(service["name"])}.txt', 'w', encoding='utf-8') as f:
+            with open(path, 'w', encoding='utf-8') as f:
                 f.write(access_token)
         except Exception as e:
             print(f"企业微信获取通行密钥时发生错误: {e}")
@@ -232,18 +238,19 @@ def get_wx_token(service):
 
 def get_dd_token(service):
     access_token = None
-    if os.path.exists(f'access_token_dd_{sanitize_filename(service["name"])}.txt'):
-        txt_last_edit_time = os.stat(f'access_token_dd_{sanitize_filename(service["name"])}.txt').st_mtime
+    path = os.path.join(token_dir, f'access_token_dd_{sanitize_filename(service["name"])}.txt')
+    if os.path.exists(path):
+        txt_last_edit_time = os.stat(path).st_mtime
         now_time = time.time()
         if now_time - txt_last_edit_time < 7000:
-            with open(f'access_token_dd_{sanitize_filename(service["name"])}.txt', 'r', encoding='utf-8') as f:
+            with open(path, 'r', encoding='utf-8') as f:
                 access_token = f.read()
     if not access_token:
         try:
             r = requests.post(
                 f'https://api.dingtalk.com/v1.0/oauth2/accessToken', json={"appKey": service["appKey"], "appSecret": service["appSecret"]}, timeout=timeout)
             access_token = r.json()["accessToken"]
-            with open(f'access_token_dd_{sanitize_filename(service["name"])}.txt', 'w', encoding='utf-8') as f:
+            with open(path, 'w', encoding='utf-8') as f:
                 f.write(access_token)
         except Exception as e:
             print(f"钉钉获取通行密钥时发生错误: {e}")
@@ -251,18 +258,19 @@ def get_dd_token(service):
 
 def get_fs_token(service):
     access_token = None
-    if os.path.exists(f'access_token_fs_{sanitize_filename(service["name"])}.txt'):
-        txt_last_edit_time = os.stat(f'access_token_fs_{sanitize_filename(service["name"])}.txt').st_mtime
+    path = os.path.join(token_dir, f'access_token_fs_{sanitize_filename(service["name"])}.txt')
+    if os.path.exists(path):
+        txt_last_edit_time = os.stat(path).st_mtime
         now_time = time.time()
         if now_time - txt_last_edit_time < 1740:
-            with open(f'access_token_fs_{sanitize_filename(service["name"])}.txt', 'r', encoding='utf-8') as f:
+            with open(path, 'r', encoding='utf-8') as f:
                 access_token = f.read()
     if not access_token:
         try:
             r = requests.post(
                 f'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', json={"app_id": service["appId"], "app_secret": service["appSecret"]}, timeout=timeout)
             access_token = r.json()["tenant_access_token"]
-            with open(f'access_token_fs_{sanitize_filename(service["name"])}.txt', 'w', encoding='utf-8') as f:
+            with open(path, 'w', encoding='utf-8') as f:
                 f.write(access_token)
         except Exception as e:
             print(f"飞书获取通行密钥时发生错误: {e}")
@@ -276,11 +284,12 @@ def upload_wx_file(filepath, access_token, max_data=20971520):
         filepaths = [filepath]
     media_ids = []
     for path in filepaths:
-        files={
-            'file': open(path, 'rb')
-        }
         try:
-            r=requests.post(f'https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token={access_token}&type=file', files=files, timeout=timeout)
+            with open(path, 'rb') as f:
+                files={
+                    'file': f
+                }
+                r=requests.post(f'https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token={access_token}&type=file', files=files, timeout=timeout)
             if r.json()['errcode'] == 60020:
                 print("企业微信文件上传失败: 未配置可信IP")
                 return []
@@ -358,11 +367,12 @@ def upload_dd_file(filepath, access_token, max_data=20971520):
         filepaths = [filepath]
     media_ids = {}
     for path in filepaths:
-        files={
-            'media': open(path, 'rb')
-        }
         try:
-            r=requests.post(f'https://oapi.dingtalk.com/media/upload?access_token={access_token}&type=file', files=files, timeout=timeout)
+            with open(path, 'rb') as f:
+                files={
+                    'media': f
+                }
+                r=requests.post(f'https://oapi.dingtalk.com/media/upload?access_token={access_token}&type=file', files=files, timeout=timeout)
         except Exception as e:
             print(f"钉钉文件上传发生错误: {e}")
             return {}
@@ -444,11 +454,12 @@ def upload_fs_image(filepath, access_token):
         data = {
             'image_type': 'message'
         }
-        files = {
-            'image': open(path, 'rb')
-        }
         try:
-            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/images', headers=headers, data=data, files=files, timeout=timeout)
+            with open(path, 'rb') as f:
+                files = {
+                    'image': f
+                }
+                r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/images', headers=headers, data=data, files=files, timeout=timeout)
         except Exception as e:
             print(f"飞书图片上传发生错误: {e}")
             return []
@@ -471,11 +482,12 @@ def upload_fs_file(filepath, access_token, max_data):
             'file_type': fileType,
             'file_name': os.path.basename(path)
         }
-        files = {
-            'file': open(path, 'rb')
-        }
         try:
-            r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/files', headers=headers, data=data, files=files, timeout=timeout)
+            with open(path, 'rb') as f:
+                files = {
+                    'file': f
+                }
+                r=requests.post(f'https://open.feishu.cn/open-apis/im/v1/files', headers=headers, data=data, files=files, timeout=timeout)
         except Exception as e:
             print(f"飞书文件上传发生错误: {e}")
             return []

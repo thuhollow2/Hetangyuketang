@@ -1,5 +1,5 @@
 asyncio
-PyPDF2
+pypdf
 pytz
 requests
 websockets

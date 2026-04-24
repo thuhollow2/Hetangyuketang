@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import websockets
 import json
 import requests
@@ -15,7 +15,16 @@ from draw import compose_from_strlist
 from util import *
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-os.chdir(current_dir)
+home_dir = os.environ.get("YUKETANG_HOME", current_dir)
+data_dir = os.path.join(home_dir, "data")
+os.makedirs(data_dir, exist_ok=True)
+cookie_dir = os.path.join(data_dir, "cookie")
+token_dir = os.path.join(data_dir, "token")
+qr_dir = os.path.join(data_dir, "qr")
+file_dir = os.path.join(data_dir, "file")
+for path in (cookie_dir, token_dir, qr_dir, file_dir):
+    os.makedirs(path, exist_ok=True)
+os.chdir(home_dir)
 
 with open('config.json', 'r', encoding='utf-8') as f:
     config = json.load(f)
@@ -88,15 +97,17 @@ class yuketang:
 
     async def get_cookie(self):
         flag = 0
+        qr_filename = os.path.join(qr_dir, f"qrcode_{sanitize_filename(self.name)}.jpg")
+        cookie_filename = os.path.join(cookie_dir, f"cookie_{sanitize_filename(self.name)}.txt")
         def read_cookie():
-            with open(f"cookie_{sanitize_filename(self.name)}.txt", "r", encoding="utf-8") as f:
+            with open(cookie_filename, "r", encoding="utf-8") as f:
                 lines = f.readlines()
             self.cookie = lines[0].strip()
             self.cookieTime = convert_date(int(lines[1].strip())) if len(lines) > 1 else ''
             self.username = lines[2].strip() if len(lines) > 2 else ''
             self.msgmgr = SendManager(f"[{self.name}] {self.username}\n", self.services)
         while True:
-            if not os.path.exists(f"cookie_{sanitize_filename(self.name)}.txt"):
+            if not os.path.exists(cookie_filename):
                 flag = 1
                 await asyncio.to_thread(self.msgmgr.sendMsg, "正在第一次获取登录cookie, 请微信扫码")
                 await self.ws_controller(self.ws_login, retries=1000, delay=1)
@@ -130,6 +141,11 @@ class yuketang:
                     await asyncio.to_thread(self.msgmgr.sendMsg, "cookie有效, 有效期未知")
                 if not self.username:
                     self.get_username()
+                if os.path.exists(qr_filename):
+                    try:
+                        os.remove(qr_filename)
+                    except Exception:
+                        pass
                 break
 
     def get_username(self):
@@ -171,7 +187,7 @@ class yuketang:
         self.get_username()
         content = f'{self.cookie}\n{date}\n{self.username}'
         self.cookieTime = convert_date(int(date))
-        with open(f"cookie_{sanitize_filename(self.name)}.txt", "w", encoding="utf-8") as f:
+        with open(os.path.join(cookie_dir, f"cookie_{sanitize_filename(self.name)}.txt"), "w", encoding="utf-8") as f:
             f.write(content)
 
     def check_yuketang_cookie(self):
@@ -349,7 +365,7 @@ class yuketang:
             return []
 
     def get_exam_info(self, examId, classroomId):
-        folder = os.path.join(self.domain, "exam", examId)
+        folder = os.path.join(file_dir, self.domain, "exam", examId)
         if os.path.exists(os.path.join(folder, "cover.json")):
             with open(os.path.join(folder, "cover.json"), "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -549,7 +565,7 @@ class yuketang:
         async with _get_fetch_lock(self.idx, 4):  # 同一用户串行, 跨用户并行
             if examId not in self.examIdDict: return
             exam = self.examIdDict[examId].copy()
-            folder = os.path.join(self.domain, "exam", examId)
+            folder = os.path.join(file_dir, self.domain, "exam", examId)
             if os.path.exists(os.path.join(folder, "paper.json")):
                 with open(os.path.join(folder, "paper.json"), "r", encoding="utf-8") as f:
                     info = json.load(f)
@@ -683,8 +699,11 @@ class yuketang:
                         reply = ast.literal_eval(f.read().strip())
                 elif self.examConfig['llm']:
                     reply = await asyncio.to_thread(LLMManager().generateAnswer, folder)
-                    with open(os.path.join(folder, "reply.txt"), "w", encoding="utf-8") as f:
-                        f.write(str(reply))
+                    if reply.get('best_answer', {}):
+                        with open(os.path.join(folder, "reply.txt"), "w", encoding="utf-8") as f:
+                            f.write(str(reply))
+                    else:
+                        reply = None
                 if reply is not None:
                     reply_text = "LLM答案列表:"
                     for key in problems_keys:
@@ -796,7 +815,7 @@ class yuketang:
             if self.lessonIdDict.get(lessonId, {}).get('presentation', 0) != ppt_id: return
             if self.lessonIdDict[lessonId].get('presentation_status', False): return
             lesson = self.lessonIdDict[lessonId].copy()
-            folder = os.path.join(self.domain, "lesson", ppt_id)
+            folder = os.path.join(file_dir, self.domain, "lesson", ppt_id)
             if os.path.exists(os.path.join(folder, "ppt.json")):
                 with open(os.path.join(folder, "ppt.json"), "r", encoding="utf-8") as f:
                     info = json.load(f)
@@ -876,8 +895,11 @@ class yuketang:
                         reply = ast.literal_eval(f.read().strip())
                 elif self.lessonConfig['llm']:
                     reply = await asyncio.to_thread(LLMManager().generateAnswer, folder)
-                    with open(os.path.join(folder, "reply.txt"), "w", encoding="utf-8") as f:
-                        f.write(str(reply))
+                    if reply.get('best_answer', {}):
+                        with open(os.path.join(folder, "reply.txt"), "w", encoding="utf-8") as f:
+                            f.write(str(reply))
+                    else:
+                        reply = None
                 if reply is not None:
                     reply_text = "LLM答案列表:"
                     for key in problems_keys:
@@ -976,7 +998,7 @@ class yuketang:
             server_response = await recv_json(websocket)
             qrcode_url = server_response['ticket']
             download_qrcode(qrcode_url, self.name)
-            await asyncio.to_thread(self.msgmgr.sendImage, "qrcode.jpg")
+            await asyncio.to_thread(self.msgmgr.sendImage, os.path.join(qr_dir, f"qrcode_{sanitize_filename(self.name)}.jpg"))
             server_response = await asyncio.wait_for(recv_json(websocket), timeout=60)
             self.login_yuketang(server_response['UserID'], server_response['Auth'])
 
