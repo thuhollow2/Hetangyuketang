@@ -29,7 +29,7 @@ cd /storage/emulated/0
 ```shell
 pkg update
 pkg upgrade -y
-pkg install -y python git libjpeg-turbo python-pillow zbar
+pkg install -y python git libjpeg-turbo python-pillow dbus zbar
 git clone https://github.com/thuhollow2/yuketang.git # 如需提前修改文件，可先自行fork
 cd yuketang
 pip install -r requirements.txt
