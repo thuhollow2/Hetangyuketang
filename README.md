@@ -689,13 +689,13 @@ python main.py
 
 使用模型前务必测试效果，确保能正确处理题目并生成合理答案
 
-预置了 [PPT 文件夹](./data/file/pro.yuketang.cn/lesson/1529274209982060032)，可用来测试各模型效果。直接运行 `llm.py` 观察输出即可
+预置了 [PPT 文件夹](data/file/pro.yuketang.cn/lesson/1529274209982060032)，可用来测试各模型效果。直接运行 `llm.py` 观察输出即可
 
 ```shell
 python llm.py
 ```
 
-若想测试其他课堂，可在使用程序签到该课堂、生成 PPT 文件夹后，修改 [PPT 路径](llm.py#L1249)
+若想测试其他课堂，可在使用程序签到该课堂、生成 PPT 文件夹后，修改 [PPT 路径](llm.py#L1248)
 
 </details>
 
