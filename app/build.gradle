@@ -8,6 +8,22 @@ android {
     namespace "cn.yuketang.runner"
     compileSdk 35
 
+    def releaseStoreFile = System.getenv("ANDROID_KEYSTORE_PATH")
+    def releaseStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+    def releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
+    def releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+
+    signingConfigs {
+        if (releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword) {
+            release {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
     defaultConfig {
         applicationId "cn.yuketang.runner"
         minSdk 24
@@ -35,6 +51,22 @@ android {
 
     composeOptions {
         kotlinCompilerExtensionVersion "1.5.15"
+    }
+
+    buildTypes {
+        release {
+            if (signingConfigs.findByName("release") != null) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    applicationVariants.configureEach { variant ->
+        variant.outputs.configureEach { output ->
+            def version = variant.versionName
+            def suffix = variant.name == "release" ? "" : "-${variant.name}"
+            outputFileName = "yuketang-helper-v${version}${suffix}.apk"
+        }
     }
 }
 

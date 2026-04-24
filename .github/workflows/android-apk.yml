@@ -6,6 +6,11 @@ on:
     branches:
       - main
       - master
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -35,8 +40,37 @@ jobs:
       - name: Build debug APK
         run: ./gradlew --no-daemon :app:assembleDebug
 
-      - name: Upload APK
+      - name: Upload debug APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: yuketang-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/yuketang-helper-v*-debug.apk
+
+      - name: Prepare signing keystore
+        if: startsWith(github.ref, 'refs/tags/v') && secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != ''
+        shell: bash
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android-release.keystore
+
+      - name: Build signed release APK
+        if: startsWith(github.ref, 'refs/tags/v') && secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != ''
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/android-release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon :app:assembleRelease
+
+      - name: Upload signed release APK artifact
+        if: startsWith(github.ref, 'refs/tags/v') && secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: yuketang-release-apk
+          path: app/build/outputs/apk/release/yuketang-helper-v*.apk
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') && secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/yuketang-helper-v*.apk
+          generate_release_notes: true
