@@ -1,9 +1,0 @@
-.gradle/
-.gradle-user-home/
-.android-user-home/
-build/
-app/build/
-local.properties
-.idea/
-.vscode/
-*.iml
