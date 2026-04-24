@@ -24,7 +24,10 @@ MIN_LINE_SPACING = 0
 MIN_TEXT_PADDING_Y = 0
 MIN_S = 0.03  # 全局缩放最小值
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-RESAMPLE = Image.Resampling.BILINEAR
+try:
+    RESAMPLE = Image.Resampling.BILINEAR
+except AttributeError:
+    RESAMPLE = Image.BILINEAR
 MAX_WORKERS = min(4, (os.cpu_count() or 4) * 2)
 IMG_CACHE = os.path.join(file_dir, "_img_cache")
 
