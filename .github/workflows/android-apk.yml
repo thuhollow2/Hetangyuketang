@@ -15,6 +15,11 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -46,30 +51,38 @@ jobs:
           name: yuketang-debug-apk
           path: app/build/outputs/apk/debug/yuketang-helper-v*-debug.apk
 
-      - name: Prepare signing keystore
-        if: startsWith(github.ref, 'refs/tags/v') && secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != ''
+      - name: Check signing configuration
+        id: signing
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android-release.keystore
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prepare signing keystore
+        if: startsWith(github.ref, 'refs/tags/v') && steps.signing.outputs.ready == 'true'
+        shell: bash
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android-release.keystore
 
       - name: Build signed release APK
-        if: startsWith(github.ref, 'refs/tags/v') && secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != ''
+        if: startsWith(github.ref, 'refs/tags/v') && steps.signing.outputs.ready == 'true'
         env:
           ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/android-release.keystore
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: ./gradlew --no-daemon :app:assembleRelease
 
       - name: Upload signed release APK artifact
-        if: startsWith(github.ref, 'refs/tags/v') && secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != ''
+        if: startsWith(github.ref, 'refs/tags/v') && steps.signing.outputs.ready == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: yuketang-release-apk
           path: app/build/outputs/apk/release/yuketang-helper-v*.apk
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v') && secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != ''
+        if: startsWith(github.ref, 'refs/tags/v') && steps.signing.outputs.ready == 'true'
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/release/yuketang-helper-v*.apk
