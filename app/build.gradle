@@ -4,6 +4,10 @@ plugins {
     id "com.chaquo.python"
 }
 
+def defaultAppVersion = "0.1.0"
+def envAppVersion = System.getenv("APP_VERSION")
+def resolvedAppVersion = envAppVersion ? envAppVersion.replaceFirst(/^v/, "") : defaultAppVersion
+
 android {
     namespace "cn.yuketang.runner"
     compileSdk 35
@@ -29,7 +33,7 @@ android {
         minSdk 24
         targetSdk 35
         versionCode 1
-        versionName "0.1.0"
+        versionName resolvedAppVersion
 
         ndk {
             abiFilters "arm64-v8a", "x86_64"
