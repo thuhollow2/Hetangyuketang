@@ -1,7 +1,7 @@
 # 安装
 
 <details>
-<summary><code>Android</code></summary>
+<summary>Android（<a href="https://github.com/thuhollow2/yuketang/releases/latest">可直接安装软件“雨课堂助手”</a>）</summary>
 
 ## 安装 Termux
 
